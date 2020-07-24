@@ -1,3 +1,113 @@
+# Collection Interface
+
+* It is root interface of Collection hierarchy
+* A collection represents a group of object, know as its elements
+* The JDK does not provide any direct implementations of this interface
+* it provides implementations of more specific subinterfaces like Set and List,Queue
+
+## Key methods
+1. `add(E e)`,`addAll(Collection c)`
+2. `iterator()`
+3. `remove()`
+4. `size()`
+5. `contains()`
+5. `spliterator()`
+6. `stream()`
+7. `toArray()`
+
+## Subinterfaces
+
+### 1.List interfaces
+*  A list is an order collection
+*  The user can access elements by their integer index 
+* lists typically allow duplicate elements
+* The List interface provides a special iterator, called a ListIterator, that allows element insertion and replacement, and bidirectional access 
+
+**Key methods**
+1. `get(int index)`
+2. `indexof(object o)`
+3. `lastIndexof(oject 0)`
+4. `sort(comparator)`
+5. `sublist()`
+
+
+#### Implementations of List
+* LinkedList: Doubly-linked list implementation of the List and Deque interfaces. `addFirst()`,`addLast()`,`getFirst()`,`getLast()`
+* ArrayList: Resizable-array implementation of the List interface. `ensureCapacity(int minCapacity)`,`trimToSize()`
+* Stack
+* Vector
+
+### 2.Set interface
+* A collection that contains no duplicate elements.
+* It represents an unordered collection of objects.
+
+#### Implementations of Set
+* Hashset: This class implements the Set interface, backed by a hash table (actually a HashMap instance). 
+* Treeset: A NavigableSet implementations. The elements are ordered byb natural ordering,or by a Comparator. `ceiling()`,`comparator`,`subset()`,`tailSet()`
+
+### 3.Queue interface
+* represents a classical queue data structure, where objects are inserted into one end of the queue
+*  queues provide additional insertion, extraction, and inspection operations. one throws an exception if the operation fails, the other returns a special value
+
+<img width="338" alt="Screen Shot 2020-07-23 at 7 12 51 PM" src="https://user-images.githubusercontent.com/27160394/88350367-8d321400-cd18-11ea-8131-ce5fe13ecaa3.png">
+
+#### Implementations of Queue
+* PriorityQueue:  The elements of the priority queue are ordered according to their natural ordering, or by a Comparator 
+---
+# Map interface
+* An object that maps keys to values
+* A map cannot contain duplicate keys; each key can map to at most one value.
+* The Map interface provides three collection views, which allow a map's contents to be viewed as a set of keys, collection of values, or set of key-value mappings
+
+**Key Methods**
+1. `compute()`
+2. `containsKey()`
+3. `get(object Key)`
+4. `keyset()`
+5. `entryset()`
+6. `put()`
+7. `merge()`
+
+## Implmentations
+
+1. Hashmap:HashMap stores items as key/value pairs. Values can be accessed by indexes, known as keys. 
+2. Hashtable: Hashtable is similar to HashMap except it is synchronized.Hashtable doesn’t allow any null key or value.
+3. LinkedHashMap: Hash table and linked list implementation of the Map interface, with predictable iteration order. This implementation differs from HashMap in that it maintains a doubly-linked list running through all of its entries. This linked list defines the iteration ordering. maintains the insertion order.
+4. Treemap: A Red-Black tree based NavigableMap implementation. The map is sorted according to the natural ordering of its keys, or by a Comparator.`ceilingKey(K key)`,`descendingKeySet()`,`firstKey()`,`floorEntry(K key)`,`higherKey(K key)`
+
+# Collections Class
+*  It contains polymorphic algorithms that operate on collections,
+* The methods of this class all throw a NullPointerException if the collections or class objects provided to them are null.
+
+**Key Methods**
+1. `binarySearch()`
+2. `checkedCollection`
+3. `disjoin(C1,C2)` :Returns true if the two specified collections have no elements in common.
+4. `emptyIterator()`
+5. `max()`,`min()`:Returns the maximum element of the given collection,
+6. `reverse()`
+7. `reverseOrder(Comparator<T> cmp)`
+8. `rotate()`
+9. `shuffle()`
+10.`sort()`
+
+# Arrays Class
+* This class contains various static methods for manipulating arrays (such as sorting and searching).
+
+**Key Methods**
+1. `asList()`
+2. `binarySearch()`
+3. `copyOf()`
+4. `fill()`: ssigns the specified data type value to each element 
+5. `copyOfRange()`
+6. `sort()`
+7. `toString()`
+
+
+
+
+
+
 # Differences between `Iterator` and `Iterable` in java
 ## Iterable 
 * interface in `java.lang.Iterable` which repsent a collection
