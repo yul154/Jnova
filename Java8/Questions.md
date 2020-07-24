@@ -61,10 +61,15 @@ humans.sort(Comparator.comparing(Human::getName).thenComparing(Human::getAge));
 * Zoned : Specialized date-time API to deal with various timezones.
 
 # Do you know java8 observer
+The Observer Pattern. Define a one-to-many dependency between objects so that when one object changes state, all its dependents are notified and updated automatically
+* `update()`
 
 # What’s the difference between spliterator and iterator(3)
-* Java Spliterator interface is an internal iterator that breaks the stream into the smaller parts
-* 
+
+* A Spliterator can be used to split given element set into multiple sets so that we can perform some kind of operations/calculations on each set in different threads independently, possibly taking advantage of parallelism.
+* An Iterator is a simple representation of a series of elements that can be iterated over. 
+
 # What different between foreach loop and for loop
+The biggest differences are that a foreach loop processes an instance of each element in a collection in turn, while a for loop can work with any data and is not restricted to collection elements alone
 
 # default method, add default method cause error?(2)
