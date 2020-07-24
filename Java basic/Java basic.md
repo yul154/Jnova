@@ -572,10 +572,21 @@ only read the input only till the space|reads the whole line before "enter"
 places the cursor in the same line|positions the cursor in the next line.
 
 # Exceptions and Error Handle
-## `try/catch/fnally` 
-* provide structured way to handle exceptions
+* The error indicates a problem that mainly occurs due to the lack of system resources and our application should not catch these types of problems
+* Exceptions are the problems which can occur at runtime and compile time. It mainly occurs in the code written by the developers
+
+* Common errors: `java.lang.StackOverflowError`, `java.lang.OutOfMemoryError`
+* Common Excepetions: Unchecked- `ArrayIndexOutOfBoundException`,`NullPointerException`, `ArithmeticException`.Checked - `IOException`,`FileNotFoundException`
+
+##  Exception handling
+
+1. `try/catch/fnally`  provide structured way to handle exceptions
+2.  Declare the exception using `throws` keyword in method
+
 ## Exception Class Hierarchy
+
 ![ExceptionClassHierarchy-1](https://user-images.githubusercontent.com/27160394/62088355-13656880-b233-11e9-8ab1-92cf88505848.png).
+`try/catch/fnally`  
 
 * Error generally represents problem directly inside the Java virtual machine
 * Classes that inheirt from `RuntimeException` represent error in your program
@@ -583,8 +594,16 @@ places the cursor in the same line|positions the cursor in the next line.
 * Uncheckered exceptions: the occurrences of which are not checked by the compiler. 
 * Any exception class that inherits from `RuntimeException` is uncheck exception
 * Each exception tye can have a separate catch block, the order from leaf to root
-
-## Exceptions in Methods
 * Document that the exception might occur by using the `throws` clause
 * The throws clause of an overridiing method must b compatibl with the throws clause o th overridden method
+
+### The differences between throw and throws 
+* throw keyword is used inside a function. It is used when it is required to throw an Exception logically.
+* throws keyword is in the function signature. It is used when the function has some statements that can lead to some exceptions.
+* throw keyword can throw only one exception at a time.throws keyword can be used to declare multiple exceptions,
+* Syntax of throws keyword includes the class names of the Exception
+* Syntax of throw keyword includes the instance of the Exception to be thrown
+
 ## Customize Exceptions types
+* Make the class extends one of the exceptions 
+* Create a constructor with a String parameter, which is the detail message of the exception
