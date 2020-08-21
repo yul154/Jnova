@@ -26,7 +26,8 @@ listDevs.sort((o1, o2)->o1.getName().compareTo(o2.getName()));
 ```
 humans.sort(Comparator.comparing(Human::getName).thenComparing(Human::getAge));
 ```
-* Comparable is an interface defining a strategy of comparing an object with other objects of the same type.The sorting order is decided by the return value of the compareTo() method.
+* Comparable is an interface defining a strategy of comparing an object with other objects of the same type.
+* The sorting order is decided by the return value of the compareTo() method.
 * Comparator is external to the element type we are comparing
 
 # Default method
@@ -41,11 +42,10 @@ humans.sort(Comparator.comparing(Human::getName).thenComparing(Human::getAge));
 * Streams don’t change the original data structure, they only provide the result as per the pipelined methods.
 
 ## Terminal operations and Intermediate operations
-* Intermeidate operations such as filter, map, srot  return a stream so we can chain multiple
+* Intermeidate operations such as filter, map, sort  return a stream so we can chain multiple
 * orde matters, filter first, and then sort or map
 * Terminal operations such as forEach,Collection,reduce are either void o return non-stream result
 *  because intermediate operations are not evaluated unless terminal operation is invoked.
-
 
 # what is Method References
 * Method references are a special type of lambda expressions.
