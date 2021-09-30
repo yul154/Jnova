@@ -273,16 +273,20 @@ String repeated = "Java".repeat(3); // repeated is "JavaJavaJava"
 if (str != null && str.length() != 0) // to check if  string is neither null nor empty;
 ```
 ### Code Points and Code Units
-* the *char* data type is a code unit for representing Unicode code points in the UTF-16 encoding.
 
-The *length* method yields the number of code units required
+* the *char* data type is a code unit for representing Unicode code points in the UTF-16 encoding.
+* One or more code units encode a single code point
+* The main ways of encoding code points are three Unicode Transformation Formats (UTFs)
+* UTF-32, UTF-16, UTF-8. The number at the end of each format indicates the size (in bits) of its code units.
+
+The *length* method yields the number of code units required for a given string in the UTF-16 encoding.
 ``` 
 String greeting = "Hello";
 int n = greeting.length(); // is 5
 To get the true length—that is, the number of code
 ```
 
-To get the true length—that is, the number of code points—call
+`1codePointCount()`: To get the true length—that is, the number of *code points*
 ```
 int cpCount = greeting.codePointCount(0, greeting.length());
 ```
@@ -294,6 +298,17 @@ To get at the ith code point, use the statements
 ```
 int index = greeting.offsetByCodePoints(0, i);
 int cp = greeting.codePointAt(index);
+```
+traverses a string, and look at each code point in turn, you can use these statements.
+```
+int cp = sentence.codePointAt(i);
+if (Character.isSupplementaryCodePoint(cp)) i += 2; 
+else i++;
+
+i--;
+if (Character.isSurrogate(sentence.charAt(i))) i--; 
+int cp = sentence.codePointAt(i);
+
 ```
 
 ### 3.6.9 Building Strings
@@ -308,3 +323,223 @@ String str = bubilder.toString(;)
 
 ----
 ## 3.7 Input and Output
+### 3.7.1 Reading Input
+* `Scanner`
+> `import java.util.*;`.
+
+To read console input, you first construct a `Scanner` that is attached to `System.in`:
+```
+Scannner in = new Scanner(System.in);
+```
+|Method name| Descrption|
+-----------|-------------|
+`nextLine`| scans from the current position until it finds a line separator. avoid spaces.
+`next`| read a single word(delimited by whitespace).
+`nextInt`| read next int number.
+
+* `console`: read invisible input
+| System.console can return null depending on the environment in which the JVM is operating.
+
+a `Console` object must read the input a line at a time.
+
+```
+Console console = System.console();
+char[] password = console.readPassword("Enter password: ");
+console.printf(String.valueOf(password));
+```
+### 3.7.2 Formatting Output
+* `System.out.print(x)`: print x with the maximum number of nonzero digits for that type, ormatting numbers was a bit of a hassle
+
+* `printf(x)`: format specifiers that start with a % character 
+```
+System.out.printf("Hello, %s. Next year, you'll be %d", name, age);
+```
+![Screen Shot 2021-09-30 at 11 34 35 AM](https://user-images.githubusercontent.com/27160394/135382813-7c296cbd-ffa9-4192-b053-2bd5d68eee57.png)
+
+`printf`: also print `Date` class and the associated formatting options in legacy code.
+  
+![Screen Shot 2021-09-30 at 11 37 15 AM](https://user-images.githubusercontent.com/27160394/135383040-5209d30b-d8e9-45f8-889f-5946d4f5218e.png)
+ 
+ The formatting of numbers and dates is locale-specific.
+ 
+### 3.7.3 File Input and Output
+* Constructing a `Scanner` object to read file
+You can construct a Scanner with a string parameter, but the scanner interprets the string as data, not a file name.
+```
+Scanner in = new Scanner(Path.of("myfile.txt"), StandardCharsets.UTF_8);
+Scanner in = new Scanner("myfile.txt"); // ERROR?
+```
+* `PrintWriter`: To write to a file.
+```
+PrintWriter out = new PrintWriter("myfile.txt", StandardCharsets.UTF_8);
+```
+If you construct a Scanner with a file that does not exist or a PrintWriter with a file name that cannot be created, an exception occurs.
+```
+public static void main(String[] args) throws IOException {
+        Scanner in = new Scanner(Path.of("myfile.txt"), StandardCharsets.UTF_8); ...
+}
+```
+----
+## 3.8 Control Flow
+### 3.8.1 Block Scope
+> A block, or compound statement, consists of a number of Java statements, surrounded by a pair of braces.
+*  Blocks define the scope of your variables
+
+### 3.8.2 Conditional Statements
+`if(condition) statement`
+* The condition must be surrounded by parentheses.
+* Use a block to execute multiple statments
+
+```
+if (condition) statment1 else statement2
+```
+* An else groups with the closest if.
+```
+if (x <= 0) if (x == 0) sign = 0; else sign = -1;
+if (x <= 0) { if (x == 0) sign = 0; else sign = -1; }
+```
+### 3.8.3 Loops
+* while loop: `whike (condition) statement`
+   * `do/while`: make sure a block is executed at least once
+ ```
+ do statement while (condition);
+ ```
+ 
+ ### 3.8.4 Determinate Loops
+ 
+ ```
+ for (int i = 1; i <= 10; i++)
+ ```
+ 1. The first slot of the for statement usually holds the counter initialization. 
+ 2. The second slot gives the condition that will be tested before each new pass through the loop
+ 3. The third slot specifies how to update the counter.
+
+### 3.8.5 Multiple Selections–The switch Statement
+> Deal with multiple selections with many alternatives.
+```
+switch(choice){
+   case 1:
+     ...
+     break;
+   case 2:
+      ...
+      break;
+   
+}
+```
+Execution starts at the `case` label that matches the value on which the selection is performed and continues until the next `break` or the end of the switch.
+
+---
+3.9 Big Numbers
+>  Sufficient precision: `BigInteger`,`BigDecimal` in `java.math` package
+* `valueOf`:The static `valueOf` method to turn an ordinary number into a big number.
+* Unfortunately, you cannot use the familiar mathematical operators such as + and * to combine big numbers. 
+* Instead, you must use methods such as `add`and `multiply` in the big number classes.
+```
+BigInteger a = BigInteger.valueOf(100);
+BigInteger a = a.add(new BigInteger(100));
+BigInteger d = c.multiply(b.add(BigInteger.valueOf(2))); // d = c * (b + 2);
+```
+----
+** 3.10 Arrays
+> Arrays hold sequences of values of the *same type*. 
+*** 3.10.1 Declaring Arrays
+Declare an array variable by 
+1. specifying the array type—which is the element type 
+2. followed by []
+3. and the array variable name
+```
+int[] a;
+```
+4.Use the new operator to initialize an actual array
+```
+int[] a = new int[100];
+```
+```
+int smamllArray = {1,2,3,4,5};
+
+smallPrime = new int[](1,3,5,7};// reinitialize an array without creating a new variable.
+int[] anonymous = {1,3,5,7};
+smallPrime = anomymous;
+```
+* Access each individual value through an integer index.
+* An array of length 0 is not the same as `null`.
+
+### 3.10.2 Accessing Array Elements
+When an array created
+*  All elements are initialized with zero.
+*  Arrays of boolean are initialized with false. 
+*  Arrays of objects are initialized with the special value null
+
+### 3.10.3 The “for each” Loop
+> loop through each element in an array (or any other collection of elements) without having to fuss with index values.
+```
+for(element :collection)
+```
+* collection expression must be an array or an object of a class that implements the `Iterable` interface
+* To print the array, simply call
+```
+Arrays.toString(arr);
+```
+### 3.10.4 Array Copying
+> You can copy one array variable into another, but then both variables refer to the same array:
+```
+int[] lucky = smallPrimes;
+lucky[3] = 12；
+```
+![Screen Shot 2021-09-30 at 11 34 32 AM (2)](https://user-images.githubusercontent.com/27160394/135388942-6583a757-f9c3-4ad4-94cb-91ef16bed2af.png)
+
+*  `copyOf `method in the Arrays class: copy all values of one array into a new array
+```
+int copixedPrimes = Arrays.copyOf(lucky,lucky.length);
+int copixedDoublePrimes = Arrays.copyOf(lucky,2*lucky.length); // The additional elements are filled with 0 if the array contains numbers
+```
+
+### 3.10.6 Array Sorting
+
+* `sort` methods in the`Arrays` class : This method uses a tuned version of the `QuickSort` algorithm 
+```
+int[] a = new int[100];
+Arrays.sort(a);
+```
+### 3.10.7 Multidimensional Arrays
+```
+int[][] balances;
+balances = new int[Nyears][Nrates];
+
+int[][] magicSquare = {
+         {16, 3, 2, 13},
+         {5, 10, 11, 8},
+         {9, 6, 7, 12},
+         {4, 15, 14, 1}
+};
+```
+* A “for each” loop does not automatically loop through all elements in a two-dimensional array. Instead, it loops through the rows.
+```
+for(double[] row:a){
+  for(doubble value : row)
+  {
+    }
+}
+```
+* To print out a quick-and-dirty list of the elements of a two- dimensional array, call
+```
+System.out.println(Arrays.deepToString(a));
+```
+### 3.10.8 Ragged Arrays
+> Different rows have different lengths
+Since rows of arrays are indivdually accessible, so java allow to swap them.
+
+```
+double[] tmp = balance[i];
+balance[i] = balance[i+1];
+balance[i+1]=tmp;
+```
+So it is easy to make "ragged" arrays
+```
+int[][] arr = new int[11][];
+for (int i = 0 ; i<arr.length;i++) {
+  arr[i] = new int[i+1];
+}
+```
+
