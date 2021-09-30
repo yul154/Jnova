@@ -185,4 +185,222 @@ return name.equals(other.name); }
 if (harry.equals(boss)) 
 ```
 ### 4.3.10 Private Methods
+Wish to break up the code for a computation into separate helper methods. Typically, these helper methods should not be part of the public interface,Such methods are best implemented as private.
+
+### 4.3.11 Final Instance Fields
+* must guarantee that the field value has been set after the end of every constructor. Afterwards, the field may not be modified again.
+* 
+```
+class Employee
+{
+private final String name; ...
+}
+```
+----
+## 4.4 Static Fields and Methods
+### 4.1 Static Fields
+> There is only one such field per class
+* there is only one field that is shared among all instances of the class.
+* It belongs to the class, not to any individual object.
+
+### 4.4.3 Static Methods 
+>  Static methods as methods that don’t have a this paramete.
+* A static method can access a static field. 
+
+Use static methods in two situations:
+1. When a method doesn’t need to access the object state because all needed parameters are supplied as explicit parameters (example: Math.pow).
+2. When a method only needs to access static fields of the class (example: Employee.getNextId).
+
+### 4.4.4 Factory Methods
+> Use static factory methods that construct object.
+```
+NumberFormate currentFor = NumberFormate.getCurrencyInstance();
+NumberFormat percentFormatter = NumberFormat.getPercentInstance();
+```
+* The constructor name is always the same as the class name. But we want two different names to get the currency instance and the percent instance.
+* When you use a constructor, you can’t vary the type of the constructed object. But the factory methods actually return objects of the class.
+----
+## 4.5 Method Parameters
+*call by value* :  method gets just the value that the caller provides.
+
+*call by reference* : the method gets the location of the variable that the caller provides. 
+
+The Java programming language always uses *call by value*.  
+* That means that the method gets a copy of all parameter values
+* In particular, the method cannot modify the contents of any parameter variables passed to it.
+
+```
+double percent = 10; 
+harry.raiseSalary(percent); // the percent is still 10
+```
+
+There are, however, two kinds of method parameters: 
+1.Primitive types (numbers, boolean values) : no way fo a method to change.
+2. Object references
+```
+public static void main(String[] args) {
+	Employee harry = new Employee("Carl Cracker", 75000, 1987, 12, 15);
+	tripleSalary(staffs);
+	System.out.println(staffs.getSalary()); //225000
+
+}
+	
+public static void tripleSalary(Employee x) {
+	x.raiseSalary(200);
+}
+```
+1. x is initialized wih a copy of the values of `staffs` (object reference)
+2. The `raiseSalary` methodis applied to that object reference.The Employee object to which both `x` and` harry refer` gets its salary raised by 200 pe
+3. The method ends,and the parameter variable `x` is no longer in use.Of course, the object variable `harry` continues to refer to the object whose salary was tripled.
+![Screen Shot 2021-09-30 at 9 35 37 PM](https://user-images.githubusercontent.com/27160394/135465373-ce15a565-d7b1-4856-8ea6-f2f57cf9ce2c.png)
+
+* The method gets a copy of the object reference, and both the original and the copy refer to the same object.
+
+```
+public static void swap(Employee x, Employee y) // doesn't work
+   {
+	Employee temp = x; x = y;
+	y = temp;
+   }
+var a = new Employee("Alice", . . .); 
+var b = new Employee("Bob", . . .); 
+swap(a, b); // The original variables a and b still refer to the same objects as they did before the method call 
+```
+**Summary**
+* A method cannot modify a parameter of a primitive type (that is,numbers or boolean values).
+* A method can change the state of an object parameter.
+* A method cannot make an object parameter refer to a new object.
+----
+## 4.6 Object Construction
+### 4.6.1 Overloading
+> Overloading occurs if several methods have the same name but different parameters.
+1. Construct an empty `StringBuilder` object
+```
+var messages = new StringBuilder();
+var todoList = new StringBuilder("To do:\n");
+```
+* It picks the correct method by matching the parameter types in the headers of the various methods with the types of the values used in the specific method call. 
+
+### 4.6.2 Default Field Initialization
+If you don’t set a field explicitly in a constructor, it is automatically set to a default value: 
+* numbers to 0
+* boolean values to false
+* object references to null.
+
+### 4.6.3 The Constructor with No Arguments
+> If you write a class with no constructors whatsoever, then a no-argument constructor is provided for you.
+* The default constructor sets all the instance fields to their default values.
+* If a class supplies at least one constructor but does not supply a no-argument constructor, it is illegal to construct objects without supplying arguments
+
+### 4.6.4 Explicit Field Initialization
+> make sure that, regardless of the constructor call, every instance field is set to something meaningful.
+```
+class Employee
+{
+	private static int nextId; 
+	private int id = assignId(); ...
+	private static int 
+	assignId()
+	{
+	int r = nextId; 
+	nextId++; 
+	return r;
+        }
+}
+```
+
+### 4.6.5 Parameter Names
+* Some programmers prefix each parameter with an “a”:
+```
+public Employee(String aName, double aSalary) {
+	name = aName; 
+	salary = aSalary;
+}
+```
+* Parameter variables shadow instance fields with the same name
+```
+public Employee(String name, double salary) {
+	this.name = name;
+	this.salary = salary; 
+}
+```
+### 4.6.6 Calling Another Constructor
+If the first statement of a constructor has the form this(. . .), then the constructor calls another constructor of the same class
+```
+public Employee(double s) {
+	this("Employee #" + nextId, s);// calls Employee(String, double) 
+	nextId++; 
+}
+```
+### 4.6.7 Initialization Blocks
+
+
+1. All data field  are initialized to their default values.
+2. All field initializers  and initialization blocks are executed,in the order in which they occur in the class declaration.
+3. The body of the constructor is executed.
+
+If the static fields of your class require complex initialization code, use a static initialization block.
+
+### 4.6.8 Object Destruction and the finalize Method
+* If a resource needs to be closed as soon as you have finished using it, supply a close method that does the necessary cleanup. You can call the close method when you are done with the objec
+
+* `finalize`  is now deprecated.
+---
+## 4.7 Packages
+> group classes in a collection called a package.
+### 4.7.1 Package Names
+*  Use an Internet domain name (which is known to be unique, written in reverse
+### 4.7.2 Class Importation
+---
+## 4.8 JAR Files
+> When you package your application, you want to give your users a single file, not a directory structure filled with class files.
+
+### 4.8.2 The manifest
+> A manifest file that describes special features of the archive.
+
+### 4.8.3 Executable JAR Files
+---
+## 4.9 Documentation Comments
+*javadoc* generates HTML documentation from your source files.
+
+start with the special delimiter `/**` to your source code, you too can easily produce professional-looking documentation.
+### 4.9.1 Comment Insertion
+The `javadoc` utility extracts information for the following items:
+1. Modules
+2. Packages
+3. Public classes and interfaces
+4. Public and protected fields
+5. Public and protected constructors and methods
+
+* Comment contains free-form text followed by tags. A tag starts with an @, such as @since or @param.
+* The first sentence of the free-form text should be a summary statement
+
+### 4.9.2 Class Comments
+The class comment must be placed after any import statements, directly before the class definition.
+### 4.9.3 Method Comments
+general-purpose tags
+| tag name | descrption|
+|----------|-----------|
+|`@param` variable | This tag adds an entry to the “parameters” section of the current method. The description can span multiple lines and can use HTML tags. All `@param` tags for one method must be kept together.|
+|`@return ` |This tag adds a “returns” section to the current method. The description can span multiple lines and can use HTML tags.|
+|`@throws` class |This tag adds a note that this method may throw an exception|
+
+```
+/**
+  * Raises the salary of an employee.
+   * @param byPercent the percentage by which to raise the salary (e.g., 10 me
+   * @return the amount of the raise
+*/
+```
+----
+## 4.10 Class Design Hints
+1. *Always keep data private*.
+2.* Always initialize data* : initialize all variables explicitly.
+3. *Don’t use too many basic types in a class* : to replace multiple related uses of basic types with other classes
+4. *Not all fields need individual field accessors and mutators.* 
+5. *Break up classes that have to omany responsibilities* 
+6. *Make the names of your classes and methods reflect their responsibilities*.
+>a class name should be a noun (Order), or a noun preceded by an adjective (RushOrder) or a gerund (an “-ing” word, as in BillingAddress).
+7. *Prefer immutable classes*:  it is safe to share their objects among multiple threads.
+8. 
 
