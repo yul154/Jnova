@@ -127,12 +127,122 @@ public boolean equals(Object otherObject) {
 * `Objects.equals(a, b)` returns true if both arguments are null, false if only one is null,
 
 ### 5.2.3 Equality Testing and Inheritance
+When we check if two objects , we will use 
+1. `getclass()`
+2. `instanceOf()`: subclass can be `instanceOf` superClass
+
 The way we see it, there are two distinct scenarios:
 * If subclasses can have their own notion of equality, then the symmetry requirement forces you to use the getClass test.
-* If the notion of equality is fixed in the superclass, then you can use the instanceof test and allow objects of different subclasses to be equal
+* If the notion of equality is fixed in the superclass, then you can use the `instanceof` test and allow objects of different subclasses to be equal
 to one another.
-?
+
+If you have fields of array type, you can use the static `Arrays.equals` method to check that the corresponding array elements are equal.
+
 ### 5.2.4 The hashCode Method
-* A hash code is an integer that is derived from an object.
+> A hash code is an integer that is derived from an object.
+`equals` and `hashCode()` must be compatible. If  `x.equals(y)` is rue. Then `x.hashCode()` must return the same value as y.hashCode()/ 
 
 ### 5.2.5 The toString Method
+> `toString` method that returns a string representing the value of this object.
+* Whenever an object is concatenated with a string by the “+” operator, the Java compiler automatically invokes the `toString` method to obtain a string representation of the object. 
+* the `println` method simply calls `x.toString()`
+---
+## 5.3 Generic Array Lists
+`ArrayList` is a *generic class* with a `type parameter`
+```
+ArrayList<Employee> = new ArrayList<>();
+```
+### 5.3.1 Declaring Array Lists
+`ensureCapacity(100);` That call allocates an internal array of 100 objects. Then, the first 100 calls to add will not involve any costly reallocation.
+
+Difference of Allocating an array list and allocating a new array
+```
+new ArrayList<>(100) //at the beginning, even after its initial construction, an array list holds no elements at all.
+new Employee[100] //If you allocate an array with 100 entries, then the array has 100 slots, ready for use.
+```
+`trimToSize`: trims the capacity of an ArrayList instance to be the list's current size.
+
+### 5.3.2 Accessing Array List Elements
+>  use the `get` and `set` methods instand of [] to access and change
+* Do not call list.set(i, x) until the size (holding element)of the array list is larger than i. 
+* `ArrayLis.toArray()` : copy the elements into an array
+* `set` method replaces the element in the specified position with the new element. But in `add(position, element)` will add the element in the specified position and shifts the existing elements to right side of the array
+
+### 5.3.3 Compatibility between Typed and Raw Array Lists
+* Assign a raw ArrayList to a typed one, you get a warning.
+* For compatibility, the compiler translates all typed array lists into raw ArrayList objects after checking that the type rules were not violated.
+* All Lists are the same without type parameters in VM.
+---
+## 5.4 Object Wrappers and Autoboxing
+>  Convert a primitive type like int to an object.All primitive types have class counterparts(Wrappers)
+* Wappers are immutable
+* type parameter inside of diamond can not be a primitive type
+```
+var list = new ArrayList<Integer>();
+list.add(3); //error
+lis.add(Integer.valueOf(3)); //autoboxing.
+int n = list.get(i).intValue(); // unboxing
+```
+`int` --> `Integer` is boxing and opposite is unboxing.
+* `==` to check if the objects have identical memeory locations. call the equals method when comparing wrapper objects.
+* wrappers a convenient place to put certain basic methods, such as those for converting strings of digits to numbers.
+```
+int x = Integer.ParseInt(str);
+```
+---
+## 5.5 Methods with a Variable Number of Parameters
+ `...` is part of the Java code. It denotes that the method can  receive an arbitrary number of objects 
+ * `Object...` parameter type is exactly the same as `Object[]`
+
+```
+public static void main(String... args)
+```
+---
+## 5.6 Enumeration Classes
+```
+public enum Size { SMALL, MEDIUM, LARGE, EXTRA_LARGE } // is actually a class
+```
+* use `==` innstead of `equals` to compare values of enumeraterd typed.
+---
+## 5.7 Reflection
+> *reflection library* use to manipulater java code dynamically
+* A program that can analyze the capabilities of classes is called reflective.
+
+### 5.7.1 The `Class` Class
+> able to access this information by working with a special `Java` class
+
+* The `getClass() `method in the `Object` class returns an instance of Class type.
+```
+Employee e;
+...
+Class cl = e.getClass();
+Class cl1 = Random.class; // if you import java.util.*;
+Class cl = Class.forName(className);
+Object obj = cl.getConstructor().newInstance(); // construct an instance
+
+```
+While your program is running, the Java runtime system always maintains what is called runtime type identification on all objects
+
+
+### 5.7.3 Resources
+The `Class` class provides a useful service for locating resource files. Here are the necessary steps:
+```
+URL url = cl.getResource("about.gif");
+```
+
+### 5.7.4 Using Reflection to Analyze the Capabilities of Classes
+The three classes `Field, Method, and Constructor` in the `java.lang.reflect `package describe the fields, methods, and constructors of a class,
+
+### 5.7.5 Using Reflection to Analyze Objects at Runtime
+Call `getDeclaredFields` on the Class object. to get value of fields
+
+### 5.7.6 Using Reflection to Write Generic Array Code
+
+---
+##  Summary
+1. Place common fields and method in superclass
+2. Be careful with `protected` fields : anyone can form a subclass of your classes and then write code that directly accesses protected instance fields, thereby breaking encapsulation.
+3. Use inheritance to model the “is–a” relationship. But avoid fields or methods conflict when u consider to design this relationship.
+4. Don’t change the expected behavior when youo verride a method.
+5. Use polymorphism, not type information -> common action should define in interface or super class.
+6. Don’t over user eflection: 
