@@ -133,14 +133,43 @@ public class Problem<T> extends Exception { /* . . . */ } // ERROR--can't extend
 ### 8.6.10 Beware of Clashes after Erasure
 A class or type variable may not at the same time be a subtype of two interface types which are different parameterizations of the same interface.
 There would be a conflict with the synthesized bridge methods
+
 ---
 ## 8.7 Inheritance Rules for Generic Types
-* There is no relationship between Pair<S> and Pair<T> ，Even S is superclass of T. Subclass and superclass refer to same object.
+There is no relationship between `Pair <S>` and `Pair <T>`. Even S is superclass of T. Subclass and superclass refer to same object.
 ---
 ## 8.8 Wildcard Types
 ### 8.8.1 The Wildcard Concept
 > In a wildcard type, a type parameter is allowed to vary.
-  
 ```
 Pair<? extends Employee>
+```
+### 8.8.2 Supertype Bounds for Wildcards
+> `? super Manager`
+Wildcard bounds are similar to type variable bounds, but they have an added capability—you can specify a supertype bound
+
+### 8.8.3 Unbounded Wildcards
+
+`Pair<?>` VS `Pair`
+* `setFirst` method can never be called for `Pair<?>`, not even with an `Object`, But you can call the `setFirst` method of the raw Pair class with any `Object`=
+
+### 8.8.4 Wildcard Capture
+ we can’t write code that uses `?` as a type.
+---
+## 8.9 Reflection and Generics
+### 8.9.1 The Generic Class Class
+The `Class` class is now generic : `String.class` is an object of class `Class<String>`
+
+### 8.9.2 Using `Class<T>` Parameters for Type Matching.
+The type parameter `T` of the `makePair` method matches `Employee`, and the compiler can infer that the method returns a `Pair<Employee>`.
+ 
+### 8.9.3 Generic Type Information in the Virtual Machine.
+you can reconstruct everything about generic classes and methods that their implementors declared
+* In order to express `generic` type declarations, use the interface Type in the java.lang.reflect package.
+
+### 8.9.4 Type Literals
+with generic classes, erasure poses a problem. How can you have different actions for `arrayList<Integer>` and `arrayList<String>`
+* You can capture an instance of the Type interface that you encountered in the preceding section. Construct an anonymous subclass
+```
+var type = new TypeLiteral<ArrayList<Integer>>(){} 
 ```
