@@ -421,7 +421,7 @@ var settings = new Properties(defaultSettings);
 ### 9.7.4 Stacks
 The `Stack` class extends the `Vector` class
 * which is not satisfactory from a theoretical perspective -you can apply such un-stack-like operations as insert and remove to insert and remove values anywhere
-
+* `Vector` synchronizes on each individual operation. So the `Vector` is consider deprecated.
 ### 9.7.5 Bit Sets
 > The Java platform’s BitSet class stores a sequence of bits.
 The `BitSet` class gives you a convenient interface for reading, setting, and resetting individual `bit`
