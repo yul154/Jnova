@@ -434,4 +434,103 @@ Summary of thread pool
 4. Call `shutdown` when you no longer want to submit any tasks.
 
 ### 12.6.3 Controlling Groups of Tasks
+> an executor is used for a more tactical reason—simply to control a group of related tasks. 
+* you can cancel all tasks in an executor with the `shutdownNow` method.
+* The `invokeAny` method submits all objects in a collection of `Callable` objects and blocks until all of them complete, and returns a list of Future objects that represent the solutions to all task.
+* `ExecutorCompletionService.`:obtaining the results in the order in which they are available.
+```
+var service = new ExecutorCompletionService<T>(executor); //a more efficient organization for the preceding computation
+for (Callable<T> task : tasks) service.submit(task);
+for (int i = 0; i < tasks.size(); i++)
+     processFurther(service.take().get());
+```
+### 12.6.4 The Fork-Join Framework
+> Decomposes into subtasks,
+```
+protected Integer compute()
+{
+    if (to - from < THRESHOLD) {
+             solve problem directly
+    } else {
+       int mid = (from + to) / 2;
+       var first = new Counter(values, from, mid, filter); 
+       var second = new Counter(values, mid, to, filter); 
+       invokeAll(first, second); //the invokeAll method receives a number of tasks and blocks until all of them have completed
+       return first.join() + second.join(); //The join method yields the result
+} }
+```
+* we apply `join` to each subtask and return the sum.
+* Fork-join pools are optimized for nonblocking workloads. implement the `ForkJoinPool.ManagedBlocker` interface might be a good idea to handle that add many blocking tasks into a fork-join pool.
+---
+## 12.7 Asynchronous Computations
+### 12.7.1 Completable Futures
+The `CompletableFuture` class implements the `Future` interface : it provides a second mechanism for obtaining the result. You register a `callback` that will be invoked (in some thread) with the result once it is available.
 
+A  `CompletableFuture` can complete in two ways: 
+1. either with a result, 
+2. an uncaught exception.
+`whenComplete` method can handle both case:
+1. The supplied function is called with the result (or null if none) 
+2. The exception (or null if none).
+The `CompletableFuture` is called completable because you can manually set a completion value.
+* The `isDone` method tells you whether a Future object has been completed (normally or with an exception)
+* `CompletableFuture` is not interrupted when you invoke its `cancel` method. Canceling simply sets the Future object to be completed exceptionally with a `CancellationException`
+
+### 12.7.2 Composing Completable Futures
+Registers a `callback` for the action that should occur after a task completes.
+
+The `CompletableFuture` class providing a mechanism for composing asynchronous tasks into a processing pipeline
+
+### 12.7.3 Long-Running Tasks in User Interface Callbacks
+---
+## 12.8 Processes
+> The `Process` class executes a command in a separate operating system process and lets you interact with its standard input, output, and error stream
+The `ProcessBuilder` class lets you configure a `Process` object.
+### 12.8.1 Building a Process
+```
+var builder = new ProcessBuilder("gcc", "myapp.c");
+```
+Each process has a working directory, By default, a process has the same working directory as the virtual machine, which is typically the directory from which you launched the java program. 
+```
+builder = builder.directory(path.toFile());
+```
+Each of the methods for configuring a `ProcessBuilder` returns itself
+```
+Process p = new ProcessBuilder(command).directory(file).... start();
+```
+ Specify what should happen to the standard input, output, and error streams of the process.
+ ```
+ OutputStream processIn = p.getOutputStream(); 
+ InputStream processOut = p.getInputStream(); 
+ InputStream processErr = p.getErrorStream();
+ ```
+ * Note that the input stream of the process is an output stream in the JVM! 
+
+`builder.redirect`: Represents a source of subprocess input or a destination of subprocess output.
+* `ProcessBuilder.Redirect.INHERIT` :subprocess I/O source or destination will be the same as those of the current process.
+
+`builder.environment()`:modify the environment variables of the process.
+
+`startPipeline` method : Pass a list of process builders and read the result from the last process
+### 12.8.2 Running a Process
+>  invoke its `start` method to start the process
+
+To `wait` for the process to finish, call
+```
+int result = process.waitFor(); // returns the exit value of the process
+if (process.waitfor(delay, TimeUnit.SECONDS)) { //The second call returns true if the process didn’t time out.
+       int result = process.exitValue(); ...
+} 
+```
+To kill the process, call `destroy` or `destroyForcible`
+
+Finally, you can receive an asynchronous notification when the process has completed. The call `process.onExit()` yields a `CompletableFuture<Process`
+
+### 12.8.3 Process Handles
+> `ProcessHandle` interface to get more information about a process that your program started, or any other process that is currently running on your machine
+
+Obtain a ProcessHandle in four ways:
+1. Given a `Process` object p, `p.toHandle()` yields its Process Handle.
+2. Given a `long` operating system process ID, `ProcessHandle.of(id)` yields the handle of that process.
+3. `Process.current()` 
+4. `ProcessHandle.allProcesses()` yields a Stream<`ProcessHandle`> of all operating system processes that are visible to the current process.
