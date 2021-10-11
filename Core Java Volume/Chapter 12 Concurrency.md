@@ -271,3 +271,167 @@ Loosely adapted the monitor concept.
  * The intrinsic lock is available to clients.
 
 ### 12.4.8 Volatile Fields
+> The `volatile` keyword offers a lock-free mechanism for synchronizing access to an instance field.  
+ 
+**Variable Visibility Problems**
+* Computers with multiple processors can temporarily hold memory values in registers or local memory caches. As a consequence, threads running in different processors may see different values for the same memory location!
+* The problem with threads not seeing the latest value of a variable because it has not yet been written back to main memory by another thread, is called a *visibility" problem*. The updates of one thread are not visible to other threads.
+* Compilers can reorder instructions for maximum throughput. Compilers won’t choose an ordering that changes the meaning of the code, but they make the assumption that memory values are only changed when there are explicit instructions in the code. However, a memory value can be changed by another thread!
+
+If declared field as `volatile`: 
+* `volatile` variable will be written back to main memory immediately.
+*  Also, all reads of the counter variable will be read directly from main memory.
+```
+private volatile boolean done;
+public boolean isDone() { return done; } 
+public void setDone() { done = true; }
+```
+Before inserting `volatile`: The isDone and setDone methods can block if another thread has locked `done`.
+After: The compiler  ensure that a change to the `done` variable in one thread is *visible* from any other thread that reads the variable.
+
+But, Volatile variables do not provide any atomicity.
+*  Need to use a `synchronized` to guarantee that the reading and writing of the variable is atomic
+*  Also use one of the many atomic data types found in the `java.util.concurrent package`.
+
+### 12.4.9 Final Variables
+`final`:  one other situation in which it is safe to access a shared field
+
+### 12.4.10 Atomics
+There are a number of classes in the `java.util.concurrent.atomic` package that use efficient machine-level instructions to guarantee atomicity of other operations without using locks. 
+* `AtomicInteger` class has methods `incrementAndGet` and `decrementAndGet`
+* The `LongAdder` and `LongAccumulator` can solve the problem that a very large number of threads accessing the same atomic values
+
+### 12.4.11 Deadlocks
+> A deadlock is when two or more threads are blocked forever, waiting for each other. 
+
+Deadlock can occur 
+* It is possible that all threads get blocked because each is waiting for impossible situation.
+* It is possible that in ith thread, the method is not maing progress.
+* Call to `signal`. It only unblocks one thread, and it may not pick the thread that is essential to make progress
+
+### 12.4.12 Thread-Local Variables
+>  Avoid sharing by giving each thread its own instance, using the `ThreadLocal` helper class
+```
+public static final ThreadLocal<SimpleDateFormat> dateFormat = ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-
+dd"));
+
+String dateStamp = dateFormat.get().format(new Date());
+
+```
+* the `get` method returns the instance belonging to the current thread.
+---
+## 12.5 Thread-Safe Collections
+
+Choose a thread-safe implementation instead of supplying a lock
+### 12.5.1 Blocking Queues
+> `java.util.concurrent Interface BlockingQueue<E>`
+A blocking queue causes a thread to block when you try to add an element when the queue is currently full or to remove an element when the queue is empty.
+
+* The `poll` and `peek` methods return null to indicate failure. Therefore, it is illegal to insert null values into these queues.
+* The `put` method blocks if the queue is full, and the `take` method blocks if the queue is empty
+
+### 12.5.2 Efficient Maps, Sets, and Queues
+> `ConcurrentHashMap`, `ConcurrentSkipListMap`, `ConcurrentSkipListSet`, and `ConcurrentLinkedQueue`.
+* The concurrent hash map can efficiently support a large number of readers and a fixed number of writers.
+
+### 12.5.3 Atomic Update of Map Entries
+This is not Atomic Update
+```
+Long oldValue = map.get(word);
+Long newValue = oldValue == null ? 1 : oldValue + 1; 
+map.put(word, newValue); // ERROR--might not replace oldValue
+```
+1. In old versions of Java, it was necessary to use the replace method,
+```
+do {
+   oldValue = map.get(word);
+   newValue = oldValue == null ? 1 : oldValue + 1; 
+ }
+while (!map.replace(word, oldValue, newValue));
+```
+2. Use a `ConcurrentHashMap<String,AtomicLong>`,You cannot have null values in a ConcurrentHashMap.
+```
+map.putIfAbsent(word, new AtomicLong()); 
+map.get(word).incrementAndGet();
+
+```
+3. `compute` method: receives the key and the associated value, or null if there is none, and it computes the new value. 
+```
+map.compute(word, (k, v) -> v == null ? 1 : v + 1);
+map.computeIfAbsent(word, k -> new LongAdder()).increment(); //. A map of LongAdder counters can be updated with
+```
+4. `merge` method :It has a parameter for the initial value that is used when the key is not yet present
+```
+map.merge(word, 1L, (existingValue, newValue) -> existingValue + newValue);
+map.merge(word, 1L, Long::sum);
+```
+###  12.5.4 Bulk Operations on Concurrent Hash Maps
+There are three kinds of operations:
+* `search` applies a function to each key and/or value, until the function yields a non-null result. Then the search terminates and the function’s result is returned.
+* `reduce` combines all keys and/or values, using a provided accumulation function.
+* `forEach` applies a function to all keys and/or values.
+
+With each of the operations, you need to specify a parallelism threshold.
+
+### 12.5.5 Concurrent Set Views
+The static `newKeySet` method yields a `Set<K>` that is actually a wrapper around a `ConcurrentHashMap<K, Boolean>`.
+```
+Set<String> words = ConcurrentHashMap.<String>newKeySet();
+```
+### 12.5.6 Copy on Write Arrays
+
+The `CopyOnWriteArrayList` and `CopyOnWriteArraySet` are thread-safe collections in which all mutators make a copy of the underlying array.
+
+### 12.5.7 Parallel Array Algorithms
+* `Arrays.parallelSort` method can sort an array of primitive values or objects.
+* The `parallelSetAll` method fills an array with values that are computed from a function. 
+* `parallelPrefix` method that replaces each array element with the accumulation of the prefix for a given associative operation.
+---
+## 12.6 Tasks and Thread Pools
+
+A thread pool contains a number of threads that are ready to run.
+ * give a `Runnable` to the pool, and one of the threads calls the `run` method.
+ * When the `run` method exits, the thread doesn’t die but stays around to serve the next request.
+
+### 12.6.1 Callables and Futures
+
+A `Runnable` encapsulates a task that runs asynchronously; 
+* it as an asynchronous method with no parameters and no return value
+
+A `Callable` is similar to a Runnable,but have return a value
+```
+public interface Callable<V> //a parameterized type
+   {
+      V call() throws Exception;
+   }
+```
+A `Future` holds the result of an asynchronous computation.
+ * You start a computation, give someone the `Future` object, and forget about it. 
+ * The owner of the Future object can obtain the result when it is ready.
+
+One way to execute a `Callable` is to use a `FutureTask` which implements both the Future and Runnable interfaces,
+```
+Callable<Integer> task = . . .;
+var futureTask = new FutureTask<Integer>(task);
+var t = new Thread(futureTask); // it's a Runnable t.start();
+...
+Integer result = task.get(); // it's a Future
+
+```
+### 12.6.2 Executors
+The  `Executors` class has a number of static factory methods for constructing thread pools
+<img width="300" alt="Screen Shot 2021-10-11 at 2 36 48 PM" src="https://user-images.githubusercontent.com/27160394/136743598-240d9280-be4b-4a49-8cf5-bba050a8e18c.png">
+* Use a cached thread pool when you have threads that are short-lived or spend a lot of time blocking.
+* use a fixed thread pool: the number of concurrent threads is the number of processor cores.
+* The single-thread executor is useful for performance analysis
+
+`submit` ： The pool will run the submitted task at its earliest convenience. When you call submit, you get back a Future object that you can use to get the result or cancel the task.
+
+Summary of thread pool
+1. Call the static new `CachedThreadPool` or `newFixedThreadPool` method of the Executors class.
+2. Call `submit` to  submit `Callable` or `Runnable` objects.
+3. Hang  on to the returned `Future` objects so that you can get the results or cancel the tasks.
+4. Call `shutdown` when you no longer want to submit any tasks.
+
+### 12.6.3 Controlling Groups of Tasks
+
