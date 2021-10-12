@@ -11,17 +11,34 @@
 
 > *Java Concurrency in Practice by Brian Goetz et al. (Addison-Wesley Professional, 2006).*
 ---
-## 1. What Are Threads?
+## 12.1 What Are Threads?
+Individual programs will appear to do multiple tasks at the same time. Each task is executed in a thread, 
+
 what is the difference between multiple processes and multiple threads? 
 * The essential difference is that while each process has a complete set of its own variables, threads share the same data.
 
-1. Place the code for the task into the run method of a class，Since `Runnable` is a functional interface, you can make an instance with a lambda expression:
+Interruption is used to request that a thread terminates. Accordingly, our run method exits when an `InterruptedException` occurs.
+
+**Create a thread program**
+1.Since `Runnable` is a functional interface, you can make an instance with a lambda expression:
 ```
 public interface Runnable
        {
 void run(); }
 
-Runnable r = () -> { task code };
+Runnable r = () -> { 
+    try
+       {
+              for (int i = 0; i < STEPS; i++) {
+              double amount = MAX_AMOUNT * Math.random(); 
+              bank.transfer(0, 1, amount);
+              Thread.sleep((int) (DELAY * Math.random()));
+       } 
+    }
+    catch (InterruptedException e)
+      {
+      } 
+ };
 ```
 2. Construct a `thread` from Runnable
 ```
@@ -32,10 +49,10 @@ var t = new Thread(r);
 t.start();
 ```
 
-> Do not call the `run` method of the Thread class or the Runnable object
-> Calling the `run` method directly merely executes the task in the same thread, no new thread is started. 
-> Instead, call the `Thread.start` method. It creates a new thread that executes the run method.
+*  Do not call the `run` method of the Thread class or the Runnable object, Calling the `run` method directly merely executes the task in the same thread, no new thread is started. 
+*  Instead, call the `Thread.start` method. It creates a new thread that executes the run method.
 ---
+
 ## 12.2 Thread States
 Threads can be in one of six states: 
 1. New
@@ -45,20 +62,22 @@ Threads can be in one of six states:
 5. Timed waiting 
 6. Terminated
 
+* To determine the current state of a thread, simply call the `getState` method.
+
 ### 12.2.1 New Threads
 When you create a thread with the `new` operator. the thread is not yet running. This means that it is in the new state.
 ### 12.2.2 Runnable Threads
 Once you invoke the `start` method, the thread is in the runnable state.
 * A runnable thread may or may not actually be running. It is up to the operating system to give the thread time to run. 
 * Once a thread is running, it doesn’t necessarily keep running. In fact, it is desirable that running threads occasionally pause so that other threads have a chance to run
-
+*  `yield()`: causes the currently executing thread to yield to another thread. Note that this is a static method.
 ### 12.2.3 Blocked and Waiting Threads
 > When a thread is blocked or waiting, it is temporarily inactive. It doesn’t execute any code and consumes minimal resources. 
 
 |Status of thread | unlock it|
 |-----------------|----------|
 |When the thread tries to acquire an intrinsic object lock (not`java.util.concurrent`) that is currently held by another thread, it becomes blocked|The thread becomes unblocked when all other threads have relinquished the lock and the thread scheduler has allowed this thread to hold it.|
-|When the thread waits for another thread to notify the scheduler of a condition, it enters the waiting state.|This happens by calling the `Object.wait` or `Thread.join` method, or by waiting for a Lock or Condition in the `java.util.concurrent` library|
+|When the thread waits for another thread to notify the scheduler of a condition, it enters the *waiting* state.|This happens by calling the `Object.wait` or `Thread.join` method, or by waiting for a Lock or Condition in the `java.util.concurrent` library|
 |Calling timeout method causes the thread to enter the `timed waiting` state.| This state persists either until the timeout expires or the appropriate notification 
 
 <img width="440" alt="Screen Shot 2021-10-10 at 2 54 41 PM" src="https://user-images.githubusercontent.com/27160394/136685923-bf9669b3-78e7-4250-ac27-03799a5e0c7d.png">
@@ -76,33 +95,39 @@ A thread is terminated for one of two reasons:
 ### 12.3.1 Interrupting Threads
 A thread terminates when its `run` method returns, or if an exception occurs that is not caught in the method.
 *  there is no way to force a thread to terminate. However, the `interrupt` method can be used to request termination of a thread.
-*  When the `interrupt` method is called on a thread, the interrupted status of the thread is set.
+*  When the `interrupt` method is called on a thread, the interrupted status of the thread is set for object.
 ```
-while (!Thread.currentThread().isInterrupted() && more work to do) {
+while (!Thread.currentThread().isInterrupted() && more work to do) { //Thread.currentThread method to get the current thread
 
        do more work
-
 }
 
 ```
-* This is where the `InterruptedException` comes in. When the interrupt method is called on a thread that blocks on a call such as `sleep`or `wait`.
+* If a thread is blocked, it cannot check the interrupted status. This is where the `InterruptedException` comes in
+* When the interrupt method is called on a thread that blocks on a call such as `sleep`or `wait`. the blocking call is terminated by an `InterruptedException.`
+* If you call the `sleep` method when the interrupted status is set, it doesn’t sleep. Instead, it clears the status (!) and throws an `InterruptedException`
 
 `interrupted` and `isInterrupted.`
-
 * The `interrupted` method is a static method that checks whether the current thread has been interrupted. 
        * Furthermore, calling the `interrupted` method clears the interrupted status of the thread. 
 * The `isInterrupted` method is an instance method that you can use to check whether any thread has been interrupted.
 
 ### 12.3.2 Daemon Threads
-` t.setDaemon(true)` :  turn a thread into a `daemon` thread by calling
+> `t.setDaemon(true)` :  turn a thread into a `daemon` thread by calling
+A daemon is simply a thread that mainly serve User thread。
 * This method must be called before the thread is started.
 * daemon threads are low-priority threads whose only role is to provide services to user thread
 
 ### 12.3.4 Handlers for Uncaught Exceptions
-The `run` method of a thread cannot throw any checked exceptions, but it can be terminated by an unchecked exception. 
+> The `run` method of a thread cannot throw any checked exceptions, but it can be terminated by an unchecked exception. 
+
+`UncaughtExceptionHandler`
 * before the thread dies, the exception is passed to a handler (`Thread.UncaughtExceptionHandler` interface)for uncaught exceptions.
 * You can install a handler into any thread with the `setUncaughtExceptionHandler` method. 
+* Install a default handler for all threads with the static method `setDefaultUncaughtExceptionHandler` of the Thread clas
+
 ### 12.3.5 Thread Priorities
+> Every thread has a priority
 You can increase or decrease the priority of any thread with the `setPriority` method. 
 * You can set the priority to any value between MIN_PRIORITY (defined as 1 in the Thread class) 
 * MAX_PRIORITY (defined as 10). 
@@ -112,11 +137,14 @@ Thread priorities are highly system- dependent.
 * Windows has seven priority levels. Some of the Java priorities will map to the same operating system level. 
 * In the Oracle JVM for Linux, thread priorities are ignored altogether—all threads have the same priority.
 ---
+
 ## 12.4 Synchronization
 
 *Race condition* occurs when two or more threads attempt to update mutable shared data at the same time
 
 ### 12.4.2 The Race Condition Explained
+This problem occurs when two threads are simultaneously trying to update a variable.
+
 To avoid corruption of shared data by multiple threads, you must learn how to *synchronize* the *access*
  *  Race condition occurs due to not atomic operations.
  *  If we could ensure that the method runs to completion before the thread loses control, the state of the object would never be corrupted.
@@ -180,7 +208,7 @@ When you use locks, you cannot use the `try-with-resources` statement.
 * The lock has a hold count that keeps track of the nested calls to the lock method.
 * The thread has to call unlock for every call to lock in order to relinquish the lock
 * Code protected by a lock can call another method that uses the same locks.
-*  protect blocks of code that thread safety before  another thread can use the same object
+* Protect blocks of code that thread safety before another thread can use the same object
 
 fair lock
 *  are a lot slower than regular locks
@@ -194,15 +222,41 @@ fair lock
 We wait until some other thread has added funds. But this thread has just gained exclusive access to the bankLock, so no other thread has a chance to make a deposit. This is where condition objects come in.
 ````
 
-There is an essential difference between a thread that is waiting to acquire a lock and a thread that has called `await`
-* `thread.await()` -> a wait set for that condition and stay deactivated -> another thread  call `signalAll` method on the same condition.
-* No guarantee that the condition is now fulfilled. the `signalAll` method just ask waiting thread attempt to check for the condition again.
-* `signalAll` does not immediately activate a waiting thread. It only unblocks the waiting threads.
-* When a thread calls `await`, it has no way of reactivating itself. It puts its faith in the other threads
-*  `dead lock`: If none of them bother to reactivate the waiting thread, it will never run again.
-*  to call `signalAll` whenever the state of an object changes in a way that might be advantageous to waiting threads.
-*  `signal`, unblocks only a single thread from the wait set, chosen at random
+Thread that has called `await`
+1. `thread.await()` -> enter a wait set for that condition
+2. Stay deactivated until another thread  call `signalAll` method on the same condition. 
+     * The thread is not made runnable when the lock is available(thread that is waiting to acquire a lock will do)
+     * it has no way of reactivating itself. It puts its faith in the other threads (difference between a thread that is waiting to acquire a lock)
+3. `signalAll` call reactivates all threads waiting for the condition
+4. When the threads are removed from the wait set, They are again runnable and the scheduler will eventually activate them again
+5. No guarantee that the condition is now fulfilled. the `signalAll` method just ask waiting thread attempt to check for the condition again.
 
+**dead lock**
+1. When a thread calls await, it has no way of reactivating itself. 
+2. It puts its faith in the other threads. If none of them bother to reactivate the waiting thread, 
+3. it will never run again. This can lead to unpleasant deadlock situations. 
+4. If all other threads are blocked and the last active thread calls await without unblocking one of the others, it also blocks
+
+*  to call `signalAll` whenever the state of an object changes in a way that might be advantageous to waiting threads.
+*  `signalAll` does not immediately activate a waiting thread. It only unblocks the waiting threads so that they can compete for entry into the object after the current thread has relinquished the lock.
+*  `signal`, unblocks only a single thread from the wait set, chosen at random
+```
+public void transfer(int from, int to, int amount)
+   {
+       bankLock.lock(); 
+       try
+       {
+              while (accounts[from] < amount) 
+                     sufficientFunds.await();
+                     // transfer funds
+              ... 
+              sufficientFunds.signalAll();
+       } 
+       finally {
+              bankLock.unlock(); 
+       }
+}
+```
 ### 12.4.5 The synchronized Keyword
 
 A thread can only call `await`, `signalAll`, or `signal `on a condition if it owns the lock of the condition.
