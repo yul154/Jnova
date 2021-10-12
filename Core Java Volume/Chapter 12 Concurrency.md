@@ -247,7 +247,7 @@ public void transfer(int from, int to, int amount)
        try
        {
               while (accounts[from] < amount) 
-                     sufficientFunds.await();
+                     sufficientFunds.await(); // sufficientFunds = bankLock.newCondition();
                      // transfer funds
               ... 
               sufficientFunds.signalAll();
@@ -257,26 +257,25 @@ public void transfer(int from, int to, int amount)
        }
 }
 ```
-### 12.4.5 The synchronized Keyword
-
-A thread can only call `await`, `signalAll`, or `signal `on a condition if it owns the lock of the condition.
 
 ### 12.4.5 The synchronized Keyword
 > a lock mechanism that is built into the Java language.
 
->If you write a variable which may next be read by another thread, or you read a variable which may have last been written by another thread, you must use synchronization.”
+> If you write a variable which may next be read by another thread, or you read a variable which may have last been written by another thread, you must use synchronization.
 
-If a method  declared with  `synchronized`keyword, the object’s `lock` protects the entire method == a thread must acquire the intrinsic object lock.
+
+Every object in Java has an intrinsic lock., If a method declared with  `synchronized`keyword, the object’s `lock` protects the entire method == a thread must acquire the intrinsic object lock.
 ```
 public synchronized void method()
 
 public void method() {
-this.intrinsicLock.lock(); try
-{
-method body
-}
+       this.intrinsicLock.lock(); try
+       {
+              method body
+       }
 finally { this.intrinsicLock.unlock(); } }
 ```
+
 *intrinsic lock*
 
 * Each object has an `intrinsic` lock,and that the lock has an intrinsic condition. 
@@ -318,8 +317,8 @@ Loosely adapted the monitor concept.
 * Every object in Java has an intrinsic lock and an intrinsic condition. 
 * If a method is declared with the `synchronized` keyword, it acts like a monitor method. 
 * The condition variable is accessed by calling `wait/notifyAll/notify.`
-
- a Java object differs from a monitor in three important way
+*
+A Java object differs from a monitor in three important way
  * Fields are not required to be `private.`
  * Methods are not required to be `synchronized.`
  * The intrinsic lock is available to clients.
@@ -360,7 +359,7 @@ There are a number of classes in the `java.util.concurrent.atomic` package that 
 
 Deadlock can occur 
 * It is possible that all threads get blocked because each is waiting for impossible situation.
-* It is possible that in ith thread, the method is not maing progress.
+* It is possible that in ith thread, the method is not making progress.
 * Call to `signal`. It only unblocks one thread, and it may not pick the thread that is essential to make progress
 
 ### 12.4.12 Thread-Local Variables
@@ -372,23 +371,37 @@ dd"));
 String dateStamp = dateFormat.get().format(new Date());
 
 ```
-* the `get` method returns the instance belonging to the current thread.
+* the `get` method returns the instance belonging to the current thread. Avoid shared instane can be corrupted by concurrent access.
+*  the ThreadLocal helper also give each thread a separate instance which is thread-safe. 
+
+### 12.4.13 Why the `stop` and `suspend` Methods Are Deprecated
+* `stop` method that simply terminates a thread, 
+* `suspend` method that blocks a thread until another thread calls resume.
+Both attempt to control the behavior of a given thread without the thread’s cooperation.
+
+* `stop` This can leave objects in an inconsistent state.
+* if you suspend a thread that owns a lock, then the lock is unavailable until the thread is resumed. If the thread that calls the suspend method tries to acquire the same lock. the program deadlocks:
+
 ---
 ## 12.5 Thread-Safe Collections
 
-Choose a thread-safe implementation instead of supplying a lock
 ### 12.5.1 Blocking Queues
 > `java.util.concurrent Interface BlockingQueue<E>`
+> 
 A blocking queue causes a thread to block when you try to add an element when the queue is currently full or to remove an element when the queue is empty.
 
 * The `poll` and `peek` methods return null to indicate failure. Therefore, it is illegal to insert null values into these queues.
 * The `put` method blocks if the queue is full, and the `take` method blocks if the queue is empty
 
+`DelayQueue()` : Only elements whose delay has expired can be removed from the queue.
+
 ### 12.5.2 Efficient Maps, Sets, and Queues
 > `ConcurrentHashMap`, `ConcurrentSkipListMap`, `ConcurrentSkipListSet`, and `ConcurrentLinkedQueue`.
 * The concurrent hash map can efficiently support a large number of readers and a fixed number of writers.
+* The collections return weakly consistent iterator That means that the iterators may or may not reflect all modifications that are made after they were constructed
 
 ### 12.5.3 Atomic Update of Map Entries
+
 This is not Atomic Update
 ```
 Long oldValue = map.get(word);
@@ -419,18 +432,24 @@ map.computeIfAbsent(word, k -> new LongAdder()).increment(); //. A map of LongAd
 map.merge(word, 1L, (existingValue, newValue) -> existingValue + newValue);
 map.merge(word, 1L, Long::sum);
 ```
+Difference between `merge` and `compute`
+* `compute`: attempts to compute a mapping for the specified key and its current mapped value (or null if there is no current mapping)
+* `merge`: If the specified key is not already associated with a value or is associated with null, associates it with the given non-null value. Otherwise, replaces the associated value with the results of the given remapping function, 
 ###  12.5.4 Bulk Operations on Concurrent Hash Maps
 There are three kinds of operations:
 * `search` applies a function to each key and/or value, until the function yields a non-null result. Then the search terminates and the function’s result is returned.
 * `reduce` combines all keys and/or values, using a provided accumulation function.
 * `forEach` applies a function to all keys and/or values.
 
-With each of the operations, you need to specify a parallelism threshold.
+With each of the operations, you need to specify a parallelism threshold. If the map contains more elements than the threshold, the bulk operation is parallelized
 
 ### 12.5.5 Concurrent Set Views
 The static `newKeySet` method yields a `Set<K>` that is actually a wrapper around a `ConcurrentHashMap<K, Boolean>`.
 ```
 Set<String> words = ConcurrentHashMap.<String>newKeySet();
+
+Set<String> words = map.keySet(1L); //with a default value
+words.add("Java");
 ```
 ### 12.5.6 Copy on Write Arrays
 
@@ -440,10 +459,11 @@ The `CopyOnWriteArrayList` and `CopyOnWriteArraySet` are thread-safe collections
 * `Arrays.parallelSort` method can sort an array of primitive values or objects.
 * The `parallelSetAll` method fills an array with values that are computed from a function. 
 * `parallelPrefix` method that replaces each array element with the accumulation of the prefix for a given associative operation.
+
 ---
 ## 12.6 Tasks and Thread Pools
 
-A thread pool contains a number of threads that are ready to run.
+A thread pool contains a number of short-lived threads that are ready to run.
  * give a `Runnable` to the pool, and one of the threads calls the `run` method.
  * When the `run` method exits, the thread doesn’t die but stays around to serve the next request.
 
@@ -463,6 +483,14 @@ A `Future` holds the result of an asynchronous computation.
  * You start a computation, give someone the `Future` object, and forget about it. 
  * The owner of the Future object can obtain the result when it is ready.
 
+```
+V get()
+V get(long timeout, TimeUnit unit)
+void cancel(boolean mayInterrupt)
+boolean isCancelled()
+boolean isDone()
+```
+
 One way to execute a `Callable` is to use a `FutureTask` which implements both the Future and Runnable interfaces,
 ```
 Callable<Integer> task = . . .;
@@ -472,6 +500,7 @@ var t = new Thread(futureTask); // it's a Runnable t.start();
 Integer result = task.get(); // it's a Future
 
 ```
+* `FutureTask` constructs an object that is both a Future<V> and a Runnable.
 ### 12.6.2 Executors
 The  `Executors` class has a number of static factory methods for constructing thread pools
 <img width="300" alt="Screen Shot 2021-10-11 at 2 36 48 PM" src="https://user-images.githubusercontent.com/27160394/136743598-240d9280-be4b-4a49-8cf5-bba050a8e18c.png">
@@ -492,12 +521,14 @@ Summary of thread pool
 * you can cancel all tasks in an executor with the `shutdownNow` method.
 * The `invokeAny` method submits all objects in a collection of `Callable` objects and blocks until all of them complete, and returns a list of Future objects that represent the solutions to all task.
 * `ExecutorCompletionService.`:obtaining the results in the order in which they are available.
+       
 ```
 var service = new ExecutorCompletionService<T>(executor); //a more efficient organization for the preceding computation
 for (Callable<T> task : tasks) service.submit(task);
 for (int i = 0; i < tasks.size(); i++)
      processFurther(service.take().get());
 ```
+                                 
 ### 12.6.4 The Fork-Join Framework
 > Decomposes into subtasks,
 ```
