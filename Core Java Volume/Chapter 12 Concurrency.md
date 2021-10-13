@@ -502,8 +502,10 @@ Integer result = task.get(); // it's a Future
 ```
 * `FutureTask` constructs an object that is both a Future<V> and a Runnable.
 ### 12.6.2 Executors
-The  `Executors` class has a number of static factory methods for constructing thread pools
+The  `Executors` class has a number of static factory methods for constructing thread pools.
+      
 <img width="300" alt="Screen Shot 2021-10-11 at 2 36 48 PM" src="https://user-images.githubusercontent.com/27160394/136743598-240d9280-be4b-4a49-8cf5-bba050a8e18c.png">
+       
 * Use a cached thread pool when you have threads that are short-lived or spend a lot of time blocking.
 * use a fixed thread pool: the number of concurrent threads is the number of processor cores.
 * The single-thread executor is useful for performance analysis
