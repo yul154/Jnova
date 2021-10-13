@@ -549,15 +549,18 @@ protected Integer compute()
 ---
 ## 12.7 Asynchronous Computations
 ### 12.7.1 Completable Futures
-The `CompletableFuture` class implements the `Future` interface : it provides a second mechanism for obtaining the result. You register a `callback` that will be invoked (in some thread) with the result once it is available.
+The `CompletableFuture` class implements the `Future` interface : obtaining the result by register a `callback` that will be invoked (in some thread) with the result once it is available.
 
-A  `CompletableFuture` can complete in two ways: 
+`CompletableFuture.supplyAsync` : submit to to an executor service instead of submit it directly  
+                              
+`CompletableFuture` can complete in two ways: 
 1. either with a result, 
 2. an uncaught exception.
+                              
 `whenComplete` method can handle both case:
 1. The supplied function is called with the result (or null if none) 
 2. The exception (or null if none).
-The `CompletableFuture` is called completable because you can manually set a completion value.
+                             
 * The `isDone` method tells you whether a Future object has been completed (normally or with an exception)
 * `CompletableFuture` is not interrupted when you invoke its `cancel` method. Canceling simply sets the Future object to be completed exceptionally with a `CancellationException`
 
@@ -566,10 +569,9 @@ Registers a `callback` for the action that should occur after a task completes.
 
 The `CompletableFuture` class providing a mechanism for composing asynchronous tasks into a processing pipeline
 
-### 12.7.3 Long-Running Tasks in User Interface Callbacks
 ---
 ## 12.8 Processes
-> The `Process` class executes a command in a separate operating system process and lets you interact with its standard input, output, and error stream
+> The `Process` us ab executing  program.
 The `ProcessBuilder` class lets you configure a `Process` object.
 ### 12.8.1 Building a Process
 ```
@@ -583,13 +585,13 @@ Each of the methods for configuring a `ProcessBuilder` returns itself
 ```
 Process p = new ProcessBuilder(command).directory(file).... start();
 ```
- Specify what should happen to the standard input, output, and error streams of the process.
+Specify what should happen to the standard input, output, and error streams of the process.
  ```
  OutputStream processIn = p.getOutputStream(); 
  InputStream processOut = p.getInputStream(); 
  InputStream processErr = p.getErrorStream();
  ```
- * Note that the input stream of the process is an output stream in the JVM! 
+* Note that the input stream of the process is an output stream in the JVM! 
 
 `builder.redirect`: Represents a source of subprocess input or a destination of subprocess output.
 * `ProcessBuilder.Redirect.INHERIT` :subprocess I/O source or destination will be the same as those of the current process.
@@ -597,6 +599,7 @@ Process p = new ProcessBuilder(command).directory(file).... start();
 `builder.environment()`:modify the environment variables of the process.
 
 `startPipeline` method : Pass a list of process builders and read the result from the last process
+      
 ### 12.8.2 Running a Process
 >  invoke its `start` method to start the process
 
