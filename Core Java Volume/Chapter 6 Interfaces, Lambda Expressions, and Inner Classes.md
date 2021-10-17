@@ -172,4 +172,30 @@ An inner class is a class that is defined inside another class
 * An object that comes from an inner class has an implicit reference to the outer class object that instantiated it. 
 
 ### 6.3.1 Use of an Inner Class to Access Object State
-An inner class method gets to access both its own data fields and those of the outer object creating it.
+* An inner class method gets to access both its own data fields and those of the outer object creating it.
+* The outer class reference is set in the constructor. The compiler modifies all inner class constructors, adding a parameter for the outer class reference. 
+```
+pubblic class inner {
+
+   public TimePrinter(Outter outter){ innerReference = outter;}
+   public avoid innerMethod{
+         if (outerVariable){
+         
+         } 
+   }
+}
+```
+### 6.3.2 Special Syntax Rules for Inner Classes
+Write the inner object constructor more explicitly
+`outerObject.new InnerClass(construction parameters)`
+
+Set the outer class reference to another object by explicitly naming it.
+```
+var Variable = new Outer(1000, true); 
+Outer.innner inner = Variable.new innner();
+```
+
+* Any static fields declared in an inner class must be final and initialized with a compile-time constant. 
+* An inner class cannot have static methods. 
+
+### 6.3.5 Accessing Variables from Outer Methods
