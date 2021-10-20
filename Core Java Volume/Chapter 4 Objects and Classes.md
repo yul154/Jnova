@@ -166,10 +166,8 @@ name = n; //constructs an Employee object with a null name, then a NullPointerEx
 *implicit* parameter : the object that appears before the method name ,the keyword *this* refers to the implicit parameter.,
 *Explicit* parameter : the number inside the parentheses after the method name.
 ```
-public void raiseSalary(double byPercent){
-		double raise = this.salary * byPercent / 100;
-		this.salary += raise;
-	}
+employee.getRaise(5),//employee is implicit parameter, and 5 is explicit parameter.
+	
 ```
 ### 4.3.9 Class-Based Access Privileges
 >  method can access the private data of all objects of its class.
@@ -178,9 +176,8 @@ class Employee
    {
 ...
       public boolean equals(Employee other)
-      {
-return name.equals(other.name); }
-}
+      {return name.equals(other.name); }
+   }
 
 if (harry.equals(boss)) 
 ```
@@ -198,14 +195,21 @@ private final String name; ...
 ```
 ----
 ## 4.4 Static Fields and Methods
-### 4.1 Static Fields
+### 4.4.1 Static Fields
 > There is only one such field per class
-* there is only one field that is shared among all instances of the class.
-* It belongs to the class, not to any individual object.
+There is only one field (not copy) that is shared among all instances of the class. It belongs to the class, not to any individual object.
+
+### 4.4.2 Static Constants
+```
+public static final double PI = 3.14159265358979323846;
+```
+If omit the `static`, every instance will have their own copy of this variable,
 
 ### 4.4.3 Static Methods 
->  Static methods as methods that don’t have a this paramete.
+>  Static methods are methods that do not operate on objects
 * A static method can access a static field. 
+* It has no implicit parameter. Static methods as methods that don’t have a `this` paramete.
+* It is legal to use an object to call a static method.
 
 Use static methods in two situations:
 1. When a method doesn’t need to access the object state because all needed parameters are supplied as explicit parameters (example: Math.pow).
@@ -219,7 +223,8 @@ NumberFormat percentFormatter = NumberFormat.getPercentInstance();
 ```
 * The constructor name is always the same as the class name. But we want two different names to get the currency instance and the percent instance.
 * When you use a constructor, you can’t vary the type of the constructed object. But the factory methods actually return objects of the class.
-----
+---
+
 ## 4.5 Method Parameters
 *call by value* :  method gets just the value that the caller provides.
 
