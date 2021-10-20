@@ -226,8 +226,8 @@ NumberFormat percentFormatter = NumberFormat.getPercentInstance();
 ---
 
 ## 4.5 Method Parameters
-*call by value* :  method gets just the value that the caller provides.
 
+*call by value* :  method gets just the value that the caller provides.
 *call by reference* : the method gets the location of the variable that the caller provides. 
 
 The Java programming language always uses *call by value*.  
@@ -240,8 +240,11 @@ harry.raiseSalary(percent); // the percent is still 10
 ```
 
 There are, however, two kinds of method parameters: 
+
 1.Primitive types (numbers, boolean values) : no way fo a method to change.
 2. Object references
+
+
 ```
 public static void main(String[] args) {
 	Employee harry = new Employee("Carl Cracker", 75000, 1987, 12, 15);
@@ -254,9 +257,11 @@ public static void tripleSalary(Employee x) {
 	x.raiseSalary(200);
 }
 ```
+
 1. x is initialized wih a copy of the values of `staffs` (object reference)
 2. The `raiseSalary` methodis applied to that object reference.The Employee object to which both `x` and` harry refer` gets its salary raised by 200 pe
 3. The method ends,and the parameter variable `x` is no longer in use.Of course, the object variable `harry` continues to refer to the object whose salary was tripled.
+
 ![Screen Shot 2021-09-30 at 9 35 37 PM](https://user-images.githubusercontent.com/27160394/135465373-ce15a565-d7b1-4856-8ea6-f2f57cf9ce2c.png)
 
 * The method gets a copy of the object reference, and both the original and the copy refer to the same object.
@@ -277,6 +282,7 @@ swap(a, b); // The original variables a and b still refer to the same objects as
 * A method cannot make an object parameter refer to a new object.
 ----
 ## 4.6 Object Construction
+
 ### 4.6.1 Overloading
 > Overloading occurs if several methods have the same name but different parameters.
 1. Construct an empty `StringBuilder` object
@@ -330,7 +336,8 @@ public Employee(String name, double salary) {
 }
 ```
 ### 4.6.6 Calling Another Constructor
-If the first statement of a constructor has the form this(. . .), then the constructor calls another constructor of the same class
+If the first statement of a constructor has the form this(. . .), then the constructor calls another constructor of the same class。
+
 ```
 public Employee(double s) {
 	this("Employee #" + nextId, s);// calls Employee(String, double) 
@@ -339,7 +346,6 @@ public Employee(double s) {
 ```
 ### 4.6.7 Initialization Blocks
 
-
 1. All data field  are initialized to their default values.
 2. All field initializers  and initialization blocks are executed,in the order in which they occur in the class declaration.
 3. The body of the constructor is executed.
@@ -347,7 +353,8 @@ public Employee(double s) {
 If the static fields of your class require complex initialization code, use a static initialization block.
 
 ### 4.6.8 Object Destruction and the finalize Method
-* If a resource needs to be closed as soon as you have finished using it, supply a close method that does the necessary cleanup. You can call the close method when you are done with the objec
+
+* If a resource needs to be closed as soon as you have finished using it, supply a close method that does the necessary cleanup. You can call the close method when you are done with the object
 
 * `finalize`  is now deprecated.
 ---
@@ -407,5 +414,5 @@ general-purpose tags
 6. *Make the names of your classes and methods reflect their responsibilities*.
 >a class name should be a noun (Order), or a noun preceded by an adjective (RushOrder) or a gerund (an “-ing” word, as in BillingAddress).
 7. *Prefer immutable classes*:  it is safe to share their objects among multiple threads.
-8. 
+
 
