@@ -31,7 +31,9 @@ public class CircularArrayQueue<E> implements Queue<E> {
 	
 }
 ```
-Use the concrete class only when you construct the collection object. Use the interface type to hold the collection reference
+Use the concrete class only when you construct the collection object. 
+
+Use the interface type to hold the collection reference
 ```
 Queue<Customer> expressLane = new CircularArrayQueue<>(100);
 expressLane.add(new Customer("Harry"));
@@ -40,6 +42,7 @@ expressLane.add(new Customer("Harry"));
 >  you want to implement your own queue class, you will find it easier to extend AbstractQueue than to implement all the methods of the Queue interface.
 
 ### 9.1.2 The Collection Interface
+
 `Collection` interface is the fundamental interface for collection classes.
 ```
 public interface Collection<E>{
@@ -88,9 +91,9 @@ it.remove();
 it.next(); 
 it.remove(); // OK
 ```
-### 9.1.4 Generic Utility Methods
+### 9.1.4 Generic Utility Methods.
 
-the library supplies a class `AbstractCollection` that leaves the fundamental methods  `size` and `iterator` abstract but implements others.
+The library supplies a class `AbstractCollection` that leaves the fundamental methods  `size` and `iterator` abstract but implements others.
 ---
 ## 9.2 Interfaces in the Collections Framework
 <img width="448" alt="Screen Shot 2021-10-09 at 9 52 04 PM" src="https://user-images.githubusercontent.com/27160394/136660614-4f06b636-ab49-4f57-8cc7-2a8430fce678.png">
