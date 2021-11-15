@@ -142,9 +142,44 @@
 6. 使用阻塞队列实现线程同步
 
 ### ThreadLocal原理及使用，如何防止内存泄漏
+ThreadLocal，即线程局部变量，用来为每一个使用它的线程维护一个独立的变量副本,在多线程环境下，防止自己的变量被其它线程篡改
+* 这种变量只在线程的生命周期内有效
+* 它以空间换取时间的方式保证变量的线程安全
 
+>原理
+`ThreadLocalMap`是`ThreadLocal`的静态内部类，也是实际保存变量的类。
+`Entry`是`ThreadLocalMap`的静态内部类。`ThreadLocalMap`持有`一个Entry`数组
+* 每个Thread线程内部都有一个ThreadLocalMap
+* ThreadLocalMap拥有一个Entry数组,没有实现Map接口。是用Entry类型的数组来实现的，没有hashmap中的链表结构
+* 每个Entry都有k--v,ThreadLocalMap里面存储ThreadLocal（key）和线程的变量副本（value）
 
+当调用ThreadLocal的get()方法的时候，
+* 会先找到当前线程的ThreadLocalMap，然后再找到对应的值。
+* set()方法也是一样。所以对于不同的线程，每次获取副本值时，
+* 首先会通过getMap方法来获取当前线程中的ThreadLocalMap对象。如果获取到的ThreadLocalMap初始值为null，那么就要对其进行初始化，调用createMap方法
+* 只能在当前线程的ThreadLocalMap中去找，别的线程并不能获取到当前线程的副本值，这样就形成了副本的隔离
 
+每个ThreadLocal对象都有一个hash值 threadLocalHashCode，每初始化一个ThreadLocal对象，hash值就增加一个固定的大小 0x61c88647。
+*  在插入过程中，根据ThreadLocal对象的hash值，定位到table中的位置i，过程如下：
+1、如果当前位置是空的，那么正好，就初始化一个Entry对象放在位置i上；
+2、不巧，位置i已经有Entry对象了，如果这个Entry对象的key正好是即将设置的key，那么重新设置Entry中的value；
+3、很不巧，位置i的Entry对象，和即将设置的key没关系，那么只能找下一个空位置；
 
+> 内存泄露
+* ThreadLoalMap的Entry是继承WeakReference的（弱引用，生命周期只能存活到下次GC前），只有Key是弱引用类型的，Value并非弱引用。
+* 发生GC时，key被回收，这样我们就无法访问key为null的value元素，
+* 如果value本身是较大的对象，那么线程一直不结束的话，value就一直无法得到回收。
+* 特别是在我们使用线程池时，线程是复用的，不会杀死线程，这样ThreadLocal弱引用被回收时，value不会被回收。
 
+每次使用完ThreadLocal，都调用它的remove()方法，清除数据,将Entry节点和Map的引用关系移除，这样整个Entry对象在GC Roots分析后就变成不可达了，下次GC的时候就可以被回收
+
+> 为什么用弱引用
+假如使用强引用，当ThreadLocal不再使用需要回收时，发现某个线程中ThreadLocalMap存在该ThreadLocal的强引用，无法回收，造成内存泄漏
+因此，使用弱引用可以防止长期存在的线程（通常使用了线程池）导致ThreadLocal无法回收造成内存泄漏。
+
+> ThreadLocal变量为什么用static修饰
+为了避免重复创建TSO
+* 一个ThreadLocal实例对应当前线程中的一个TSO实例。因此，如果把ThreadLocal声明为某个类的实例变量（而不是静态变量），那么每创建一个该类的实例就会导致一个新的TSO实例被创建
+* 显然，这些被创建的TSO实例是同一个类的实例
+* 同一个线程可能会访问到同一个TSO（指类）的不同实例，这即便不会导致错误，也会导致浪费
 19. 分布式锁
