@@ -7,15 +7,19 @@
   * Two lock implementations
   * ReentrantLock
   * Sychronized
-
 * Cooperation between threads
   * `join`
   * `wait()` and `notify`,`notifyAll`
   * `await()` and `signal`,`signalAll`
-
-* `java.util.concurrent`
-* Thread Pool
+* Thread type
+* 
+* JUC `java.util.concurrent`
+ *  AQS
+ *  others
 * Thread-Safe Collections
+* JMM
+* Optimize lock
+* 
 ----
 # Thread
 ## Thread Implementation
