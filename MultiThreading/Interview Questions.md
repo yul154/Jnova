@@ -1,10 +1,44 @@
 > Java有几种实现线程的方法
+* Runnable --> run() 实现Runnable接口
+* Callable --> call() 实现Callable接口
+* Thread --> new Thread() 继承Thread类，重写run方法
+
 > 线程的生命周期
+
+|Status|Transfer|
+|-------|--------|
+|`new`| 新创建的一个线程，处于等待状态,`start()`方法标识启动一个线程，并分配资源,让其状态变成`runnable`|
+|`runnable`|可运行状态，并不是已经运行，具体的线程调度各操作系统决定. 当线程调用了 start() 方法后，线程则处于就绪 Ready 状态，等待操作系统分配 CPU 时间片，分配后则进入 Running 运行状态,`yield()` 让当前运行线程回到可运行状态，交出时间分片让高优先级的线程先执行，如果持有锁的话是不会释放掉的。
+|`waiting`|可被唤醒的等待状态,此状态可以通过 synchronized 获得锁，调用 `wait()` `await` `join()` 方法进入等待状态。最后通过 `notify、notifyall` and `signal,signalAll`唤醒|
+|`timeWaiting()`|指定时间内让出CPU资源，此时线程不会被执行，也不会被系统调度，直到等待时间到期后才会被执行,`Thread.sleep(long)`、`Object.wait(long)`、`Thread.join(long)`
+|`blocked()`| 当发生锁竞争状态下，没有获得锁的线程会处于挂起状态。比如正在等待另一个线程的 synchronized 块的执行释|
+|`terminated`| 从`New` 到`Terminated`是不可逆的。一般是程序流程正常结束或者发生了异常 |
+
+
 > callable 的底层实现
+
+为了让创建线程的方式可以有返回值抛出异常等功能，JDK1.5 引入Callable接口，
+* 此时创建线程只能通过`new Thread()`方式，而且`Thread`只有传`Runnable`的构造器（请允许我这么说，虽然还能传ThreadGroup，但并不常用），
+* 于是JDK1.5 引入`FutureTask`适配器类，
+  * `RunnableFuture`接口相当于整合和`Future`和`Runnable`接口,间接继承`Runnable`接口（继承RunnableFuture接口，RunnableFuture继承Runnable接口),
+  * `Future` 接口用来处理线程执行时的状态，可以取消，可以获取执行的返回值
+    * `get`获取返回值结果的方法,如果线程没有执行完任务，调用该方法会阻塞当前线程,以及取消执行任务`cancel`,查看任务是否执行完毕`isDone`,以及任务是否取消`isCancelled`。
+  * `FutureTask`接口是一个生产者消费者模式,生产者运行run方法计算结果，消费者经过get方法获取结果
+  * `FutureTask` 的`run`方法执行了`Callable`的`call`方法，然后将返回值赋值给了成员变量,将该返回值传入它的`get`方法
+  * `FutureTask`中有两个很关键的属性，一个是callable接口，一个是存放call方法的返回值outcome属性
+  * 如何保证在call方法能比get方法先执行完成返回值成功呢: 它是在Call方法中加了一个锁,然后在get方法中判断该锁是否已经被释放,如果被释放那就说明已经可以获取到该返回值
 
 > callable 怎么实现异步的
 
 > 线程间的通信
+
+* `join`:在线程中调用另一个线程的 join() 方法，会将当前线程挂起，而不是忙等待，直到目标线程结束。
+* `wait() notify() notifyAll()`:调用 wait()使得线程等待某个条件满足,线程在等待时会被挂起,当其他线程的运行使得这个条件满足时,其它线程会调用 notify() 或者 notifyAll() 来唤醒挂起的线程。
+* `await() signal() signalAll()`:J.U.C类库中提供了 Condition 类来实现线程之间的协调，可以在 Condition 上调用 await() 方法使线程等待，其它线程调用 signal() 或 signalAll() 方法唤醒等待的线程
+ * 相比于 wait() 这种等待方式，await() 可以指定等待的条件，因此更加灵活
+ * `await`是lock相关，`wait`是`sychornize`相关 
+
+
 
 > 什么是CAS
 CAS 指的是现代 CPU 广泛支持的一种对内存中的共享数据进行操作的一种特殊指令。这个指令会对内存中的共享数据做原子的读写操作。
@@ -69,8 +103,23 @@ JMM中规定所有的变量都存储在主内存（Main Memory）中，每条线
 > 线程池
 
 > 线程池的状态
+
+
 > 线程池的关键字和流程
 > execute与submit的区别
+* execute和submit都属于线程池的方法
+* execute所属顶层接口是Executor,submit所属顶层接口是ExecutorService，实现类ThreadPoolExecutor重写了execute方法,抽象类AbstractExecutorService重写了submit方法
+* execute只能提交Runnable类型的任务，而submit既能提交Runnable类型任务也能提交Callable类型任务。 
+* execute会直接抛出任务执行时的异常，submit会吃掉异常，可通过Future的get方法将任务执行时的异常重新抛出
+
+> Executor 与 ExecutorService 和 Executors
+* Executor 是一个抽象层面的核心接口
+* ExecutorService 接口 对 Executor 接口进行了扩展，提供了返回 Future 对象，终止，关闭线程池等方法
+* Executors 是一个工具类，类似于 Collections。提供工厂方法来创建不同类型的线程池
+* Executor 接口定义了 execute()方法用来接收一个Runnable接口的对象，而 ExecutorService 接口中的 submit()方法可以接受Runnable和Callable接口的对象
+* Executor 中的 execute() 方法不返回任何结果，而 ExecutorService 中的 submit()方法可以通过一个 Future 对象返回运算结果
+
+
 > 怎么实现多线程计数器，优化
 > AtomicInteger 和使用sychronized有什么区别
 > 如果用一个线程写，多个线程读，怎么实现
