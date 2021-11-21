@@ -170,6 +170,40 @@ static final class FairSync extends Sync {
 
 `tryAcquire`方法尝试获取锁,如果成功就返回,如果不成功,则把当前线程和等待状态信息构适成一个`Node`节点，并将结点放入同步队列的尾部。然后为同步队列中的当前节点循环等待获取锁，直到成功.
 
+```
+protected final boolean tryAcquire(int acquires) {
+    //获取当前线程
+    final Thread current = Thread.currentThread();
+    //获取同步状态
+    int c = getState();
+    //判断同步状态是否为0
+    if (c == 0) {
+        //关键在这里，公平锁会判断是否需要排队
+        if (!hasQueuedPredecessors() &&
+            //如果不需要排队，则直接cas操作更新同步状态为1
+            compareAndSetState(0, acquires)) {
+            //设置占用锁的线程为当前线程
+            setExclusiveOwnerThread(current);
+            //返回true，表示上锁成功
+            return true;
+        }
+    }
+    //判断当前线程是否是拥有锁的线程，主要是可重入锁的逻辑
+    else if (current == getExclusiveOwnerThread()) {
+        //如果是当前线程，则同步状态+1
+        int nextc = c + acquires;
+        if (nextc < 0)
+            throw new Error("Maximum lock count exceeded");
+        //设置同步状态
+        setState(nextc);
+        return true;
+    }
+    //以上情况都不是，则返回false，表示上锁失败。上锁失败根据AQS的框架设计，会入队排队
+    return false;
+}
+
+```
+
 * 关键的区别就在于尝试获取锁的时候，公平锁会判断是否需要排队再去更新同步状态，非公平锁是直接就更新同步，不判断是否需要排队。
 * 从性能上来说，公平锁的性能是比非公平锁要差的，因为公平锁要遵守FIFO(先进先出)的原则，这就会增加了上下文切换与等待线程的状态变换时间
 
@@ -343,11 +377,54 @@ CounCountDownLatch
 3. 直到所有子线程执行完成后(state=0),会通过`unpark()`方法唤醒主线程，然后主线程就会从await()方法返回，继续后续操作
 
 
+
+1. 求锁
 ```
 public final void acquireShared(int arg) {
     if (tryAcquireShared(arg) < 0) // 当返回值大于等于0的时候，说明获得成功获取锁,tryAcquireShared()方法是一个模板方法由子类去重写
         doAcquireShared(arg); //基本上跟独占式的逻辑差不多,不同的地方在于入队的Node是标志为SHARED共享式的，获取同步资源的方式是tryAcquireShared()方法
 ```
+
+2.出队列，入队的Node是标志为SHARED共享式
+```
+private void doAcquireShared(int arg) {
+    //调用addWaiter()方法，把当前线程包装成Node，标志为共享式，插入到队列中
+    final Node node = addWaiter(Node.SHARED);
+    boolean failed = true;
+    try {
+        boolean interrupted = false;
+        for (;;) {
+            //获取当前节点node的前驱节点
+            final Node p = node.predecessor();
+            //前驱节点是否是头结点
+            if (p == head) {
+                //如果前驱节点是头结点，则调用tryAcquireShared()获取同步资源
+                int r = tryAcquireShared(arg);
+                //r>=0表示获取同步资源成功，只有获取成功，才会执行到return退出for循环
+                if (r >= 0) {
+                    //设置node为头结点
+                    setHeadAndPropagate(node, r);
+                    p.next = null; // help GC
+                    if (interrupted)
+                        selfInterrupt();
+                    failed = false;
+                    return;
+                }
+            }
+            //判断是否可以被park，跟独占式的逻辑一样返回true，则进行park操作，阻塞线程
+            if (shouldParkAfterFailedAcquire(p, node) &&
+                parkAndCheckInterrupt())
+                interrupted = true;
+        }
+    } finally {
+        if (failed)
+            cancelAcquire(node);
+    }
+}
+```
+
+
+
 
 ### CountDownLatch基于
 -----
