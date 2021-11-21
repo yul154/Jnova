@@ -162,3 +162,147 @@ JMM中规定所有的变量都存储在主内存（Main Memory）中，每条线
 > 如何保证多线程读写文件的安全？
 
 > Java的并发、多线程、线程模型
+
+
+
+# Threadlocal
+> Threadlocal 是什么，有什么用
+
+ThreadLocal类的目的是为每个线程单独维护一个变量的值，避免线程间对同一变量的竞争访问，适用于一个变量在每个线程中需要有自己独立的值的场合
+
+ThreadLocal是通过将变量设置成Thread的局部变量，即使用该变量的线程提供一个独立的副本，可以独立修改，不会影响其他线程的副本，这样来解决多线程的并发问题。
+* 这种变量只在线程的生命周期内有效
+* ThreadLocal变量的活动范围为某线程，是该线程“专有的，独自霸占”的，对该变量的所有操作均由该线程完成！
+* ThreadLocal不是用来解决共享对象的多线程访问的竞争问题的,因为ThreadLocal.set()到线程中的对象是该线程自己使用的对象,其他线程是访问不到的。当线程终止后，这些值会作为垃圾回收。
+* 一般作为类的 private static的变量来给标记一些线程的状态
+
+
+> Threadlocal的底层实现
+
+* `ThreadLocalMap`是`ThreadLocal`的静态内部类，也是实际保存变量的类。
+*  `Entry`是`ThreadLocalMap`的静态内部类。`ThreadLocalMap`持有`一个Entry`数组
+  *  每个Entry都有k--v,ThreadLocalMap里面存储，key是ThreadLocal类的实例对象，value为用户的值
+* Thread类中有一个成员变量属于ThreadLocalMap类((`threadlocals`)
+* 每个线程的内部都会有一个ThreadLocalMap的变量
+* 多个ThreadLocal类去操作同一个线程，那么线程中的ThreadLocalMap就会有多个键值对
+
+
+```
+public void set(T value) 
+{
+      Thread t = Thread.currentThread();
+      ThreadLocalMap map = getMap(t);
+      if (map != null)
+          map.set(this, value);
+      else
+          createMap(t, value);
+ }
+
+```
+> Threadlocal 使用场景
+提供一个线程内公共变量（比如本次请求的用户信息减少同一个线程内多个函数或者组件之间一些公共变量的传递的复杂度，或者为线程提供一个私有的变量副本，这样每一个线程都可以随意修改自己的变量副本
+
+当我们只想在本身的线程内使用的变量，可以用 ThreadLocal 来实现,存到ThreadLocal中只是为了方便在程序中同一个线程之间传递这个变量。
+
+* 线程安全，包裹线程不安全的工具类， ThreadLocal主要是线程不安全的类在多线程中使用
+* 在Spring项目中Dao层中装配的Connection肯定是线程安全的，其解决方案就是采用ThreadLocal方法：当每个请求线程使用Connection的时候， 都会从ThreadLocal获取一次，如果为null，说明没有进行过数据库连接，连接后存入ThreadLocal中，如此一来，每一个请求线程都保存有一份 自己的Connection。于是便解决了线程安全问题
+* Session 是在处理一个用户会话过程中产生并使用的：
+* 与前端对接的接口中用到了ThreadLocal。大概流程是，前端在请求后端接口时在header带上token，拦截器通过token获取到用户信息，通过ThreadLocal保存。主要代码如下：
+ * 每一次接口请求都是一个线程，在校验接口合法后把userid存入ThreadLocal 
+ * 全局存储用户信息：拦截器中解析Token，获取用户信息，调用自定义的类(AuthNHolder)存入ThreadLocal中，当请求结束的时候，将ThreadLocal存储数据清空
+
+
+
+> ThreadLocal是解决线程安全的吗？
+线程安全问题产生的两个前提条件： 
+1. 数据共享。多个线程访问同样的数据。 
+2. 共享数据是可变的。多个线程对访问的共享数据作出了修改。
+
+一般用ThreadLocal都不会将一个共享变量放到线程的ThreadLocal中
+
+> Threadlocal 弱引用
+为了处理非常大和生命周期非常长的线程
+
+如果线程没有结束，但引用 ThreadLocal 的对象被回收，ThreadLocalMap 如果持有 ThreadLocal 的强引,内存泄漏了
+
+如果key 使用强引用
+* 对于ThreadLocal来说，即使我们使用结束，引用的ThreadLocal的对象被回收了，也会因为线程本身存在该对象的引用，处于对象可达状态，垃圾回收器无法回收。
+ * 这个时候当ThreadLocal太多的时候，这个threadlocal就会因为和entry存在强引用无法被回收！造成内存泄漏，除非线程结束，线程被回收了，map也跟着回收
+ 
+* ThreadLocalMap本身并没有为外界提供取出和存放数据的API，我们所能获得数据的方式只有通过ThreadLocal类提供的API来间接的从ThreadLocalMap取出数据，
+ * 所以，当我们用不了key（ThreadLocal对象）的API也就无法从ThreadLocalMap里取出指定的数据。
+ * Threaddlocal对象被回收，就没法从ThreadLocalMap里取出数据了
+
+
+如果Key是弱引用
+* 最好的方法是在A对象被回收后，系统自动回收对应的Entry对象
+* 所以当把threadlocal实例置为null以后,没有任何强引用指向threadlocal实例,所以threadlocal就可以顺利被gc回
+
+
+> 内存泄漏
+
+ThreadLocal 在没有外部强引用时，发生 GC时会被回收，
+* 那么 ThreadLocalMap 中保存的 key 值就变成了 null，而 Entry 又被 threadLocalMap 对象引用，threadLocalMap 对象又被 Thread 对象所引用，那么当 Thread 一直不终结的话，value 对象就会一直存在于内存中，
+* 也就导致了内存泄漏，直至 Thread 被销毁后，才会被回收
+
+ThreadLocal变量最终是设置到了Thread的ThreadLocalMap中。Key是ThreadLoacl变量的引用，Value是设置到ThreadLocal中的值(Map的key是ThreadLocal类的实例对象，value为用户的值)
+* 这个Key是一个弱引用,value是个强硬用哪个
+* 如果ThreadLocal引用变为null之后，不再对这个ThreadLocal变量进行操作了。那么就会由于Value这个强引用一直存在，一直都会有内存泄露的问题
+* 最好的办法就是ThreadLocal使用完毕之后，手动调用remove方法将其回收掉。
+* ThreadLocal的set/get/remove方法中在遇到key==null的节点时（被称为stale腐烂节点），会进行清理等处理逻辑
+* 一般情况下我们会使用线程池，这样会在执行完后表现为线程结束，实际上线程只是回到了池子中等待下次调度的时候再次使用，这种情况时ThreadLocal是会被复用的
+
+> 为什么value 设置成强引用
+
+* 不设置为弱引用，是因为不清楚这个Value除了map的引用还是否还存在其他引用，
+* 如果不存在其他引用，当GC的时候就会直接将这个Value干掉了，而此时我们的ThreadLocal还处于使用期间，就会造成Value为null的错误，所以将其设置为强引用。
+* 我们可以看到一个现象：在set,get,remove的时候都调用了`expungeStaleEntry`来将所有失效的Entity移除
+
+
+> 为什么 使用 ThreadLocal 的时候，最好要声明为静态的；
+
+ThreadLocal设计初衷是一个线程级别的变量
+
+因为如果它是一个实例级字段，那么它实际上是"每个线程-每个实例"，而不仅仅是保证的"每个线程"。通常这不是您要查找的语义。
+
+通常，它所保存的对象之类的对象仅限于用户对话，Web请求等。您不希望它们也被细分为类的实例。
+一个Web请求=>一个Persistence会话。
+没有一个Web请求=>每个对象一个持久性会话
+
+
+> Threadlocal 应用在你项目里哪里
+* 项目中封装的日期工具类 -> 每个有自己的副本，然后根据模拟时间的长度，创建当前线程的结束时间
+
+> 为啥threalocalmap写在threadlocal里不是thread里
+
+* 将ThreadLocalMap定义在Thread类内部看起来更符合逻辑，
+* 但是ThreadLocalMap并不需要Thread对象来操作，所以定义在Thread类内只会增加一些不必要的开销。
+* 定义在ThreadLocal类中的原因是ThreadLocal类负责ThreadLocalMap的创建，仅当线程中设置第一个ThreadLocal时，才为当前线程创建ThreadLocalMap，之后所有其他ThreadLocal变量将使用一个ThreadLocalMap
+
+> 为什么ThreadLocalMap 设计为ThreadLocal 内部类
+
+主要是说明ThreadLocalMap 是一个线程本地的值，它所有的方法都是private的，也就意味着除了ThreadLocal 这个类，其他类是不能操作ThreadLocalMap 中的任何方法的，这样就可以对其他类是透明的
+
+
+> ThreadLocal与synchronized的区别
+
+* ThreadLocal 是通过让每个线程独享自己的副本，避免了资源的竞争。
+* synchronized 主要用于临界资源的分配，在同一时刻限制最多只有一个线程能访问该资源。
+* ThreadLocal 并不是用来解决共享资源的多线程访问的问题，因为每个线程中的资源只是副本，并不共享。因此ThreadLocal适合作为线程上下文变量，简化线程内传参
+
+
+> java 自带的threadlocal 可以在父子线程传递吗
+```
+threadlocal.ThreadlocalMap.inheritaleThreadlcals.
+```
+实现父线程创建子线程时，将值由父线程传递到子线程
+
+* 为了解决子线程复用主线程ThreadLocal的问题，Thread类中还有另一个ThreadLocalMap：inheritableThreadLocals，里面保存的是InheritableThreadLocal，它是ThreadLocal的子类，Thread类初始化时会默认从父线程继承inheritableThreadLocals；
+
+* 原理是子线程是通过在父线程中通过调用new Thread()方法来创建子线程，Thread#init方法在Thread的构造方法中被调用。在init方法中拷贝父线程数据到子线程中。
+* 但是注意！我们现在一般都会使用线程池创建新线程，这种时候所谓的创建新线程只是复用了线程池中已有的线程，并不会调用new Thread()方法，因此使用InheritableThreadLocal往往是没效果的
+
+
+
+
+
