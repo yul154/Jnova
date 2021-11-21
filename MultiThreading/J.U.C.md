@@ -1,5 +1,10 @@
-# AQS
-# 其它组件
+* AQS
+  * 独占
+    *  ReentrantLock 
+  * 共享 
+    *  CountDownLatch
+    *  ReentrantReadWriteLock
+* 其它组件
 -----
 # AbstractQueuedSynchronizer - AQS
 > AQS框架是J.U.C中实现锁及同步机制的基础,使用一个Volatile的int类型的成员变量来表示同步状态，通过内置的FIFO队列来完成资源获取的排队工作，通过CAS完成对State值的修改。
@@ -424,10 +429,8 @@ private void doAcquireShared(int arg) {
 ```
 
 
-
-
-### CountDownLatch基于
------
+----
+### CountDownLatch
 
 J.U.C中的同步器主要用于协助线程同步，有以下四种：
 1. 闭锁 CountDownLatch: 利用它可以实现类似计数器的功能,主要用于让一个主线程等待一组事件发生后继续执行。
@@ -441,5 +444,8 @@ Summary
    * CyclicBarrier 一般用于一组线程互相等待至某个状态，然后这一组线程再同时执行；
    * 另外，CountDownLatch 是不能够重用的，而 CyclicBarrier 是可以重用的。*
 * Semaphore 其实和锁有点类似，它一般用于控制对某组资源的访问权限。
+----
+### ReentrantReadWriteLock
+
 
 
