@@ -304,6 +304,14 @@ threadlocal.ThreadlocalMap.inheritaleThreadlcals.
 
 
 ## AQS
+> AQS的基本结构
+* 成员变量 status。用于表示锁现在的状态，用volatile修饰，保证内存一致性
+* 同时所用对state的操作都是使用 CAS 进行的。state 为0表示没有任何线程持有这个锁，线程持有该锁后将 state加1，释放时减1。多次持有释放则多次加减通过CAS来判断资源的status的状态
+* 通过内置的FIFO来完成获取资源线程的排队工作(CLH)。
+  * 该队列由一个一个的Node结点组成，每个Node结点维护一个prev引用和next引用，分别指向自己的前驱和后继结点。AQS维护两个指针，分别指向队列头部head和尾部tail。
+ 
+
+
 
 > 什么情况可以判断我可以继续持有这把锁
 `getExclusiveOwnerThread`
@@ -314,6 +322,12 @@ threadlocal.ThreadlocalMap.inheritaleThreadlcals.
 
 * 释放锁时，可重入锁同样先获取当前status的值，在当前线程是持有锁的线程的前提下。如果status-1 == 0，则表示当前线程所有重复获取锁的操作都已经执行完毕，然后该线程才会真正释放锁。
 * 而非可重入锁则是在确定当前线程是持有锁的线程之后，直接将status置为0，将锁释放。
+
+
+> AQS中独占和共享的区别
+* 独占锁，每次只能有一个线程持有锁，ReentrantLock就是 以独占方式实现的互斥锁
+* 共享锁，允许多个线程同时获取锁，并发访问共享资源，比如 ReentrantReadWriteLoc
+
 
 > 怎么判断一个读写锁
 
