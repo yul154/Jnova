@@ -94,8 +94,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 	private final BlockingQueue<Runnable> workQueue;
 	// 空闲线程的超时时间，超时就回收它（非core线程）
 	private volatile long keepAliveTime;
-  // 表示keepAliveTime的单位。
-  TimeUnit unit
+	// 表示keepAliveTime的单位。
+	TimeUnit unit
 	// 为了方便的管理我们的线程，我们可以自定义线程创建工厂，来对我们的线程进行个性化的设置
 	private volatile ThreadFactory threadFactory;
 	// 线程池拒绝处理函数（如任务太多了，如何拒绝）
@@ -281,6 +281,9 @@ private final class Worker extends AbstractQueuedSynchronizer implements Runnabl
     Runnable firstTask;//初始化的任务，可以为null
 }
 ```
+* thread是在调用构造方法时通过ThreadFactory来创建的线程，可以用来执行任务
+* firstTask用它来保存传入的第一个任务，这个任务可以有也可以为null。如果这个值是非空的，那么线程就会在启动初期立即执行这个任务
+
 <img width="466" alt="Screen Shot 2021-11-22 at 8 48 12 PM" src="https://user-images.githubusercontent.com/27160394/142864494-3354bbed-3494-4d14-8b24-256927150d75.png">
 
 如何判断线程是否在运行？
@@ -291,7 +294,8 @@ private final class Worker extends AbstractQueuedSynchronizer implements Runnabl
 4. 线程池在执行`shutdown`方法或`tryTerminate`方法时会调用`interruptIdleWorkers`方法来中断空闲的线程，`interruptIdleWorkers`方法会使用`tryLock`方法来判断线程池中的线程是否是空闲状态；如果线程是空闲状态则可以安全回收。
 
 **Worker线程增加**
->增加线程是通过线程池中的`addWorke`r方法，该方法的功能就是增加一个线程，该方法不考虑线程池是在哪个阶段增加的该线程
+>增加线程是通过线程池中的`addWorker`方法，该方法的功能就是增加一个线程，该方法不考虑线程池是在哪个阶段增加的该线程
+
 `addWorker`方法有两个参数
 * `firstTask`参数用于指定新增的线程执行的第一个任务，该参数可以为空；
 * `core`参数为true表示在新增线程时会判断当前活动线程数是否少于`corePoolSize`，false表示新增线程前需要判断当前活动线程数是否少于`maximumPoolSize`
@@ -314,6 +318,7 @@ try {
   processWorkerExit(w, completedAbruptly);//获取不到任务时，主动回收自己
 }
 ```
+线程回收的工作是在processWorkerExit方法完成的。
 
 **Worker线程执行任务**
 在Worker类中的run方法调用了runWorker方法来执行任务
@@ -347,6 +352,25 @@ try {
 
 
 > 线程池中线程数的设置多少合理
-* 如果是运算密集型的任务， 我们吧cpu的核心数量作为线程数就可以。 防止阻塞等因素还可以在加上1
-* IO密集型： 由于IO是不消耗cpu的，我们统计下任务中io耗时时间 和cpu耗时时间的比例， 如果比例是7：2 那么设置线程数为设置为 1+7/2 的值作为线程数比较合理，这样当IO运行完成后， cpu也运行完成了，不用互相等待浪费时间了。
-* 我们常见的web应用等等， 几乎都是io密集型的， 主要io浪费在数据库链接和http请求等。 所以这个时候设置线程数多一点也没有关系
+
+线程池构造参数有8个，但是最核心的是3个：corePoolSize、maximumPoolSize，workQueue，它们最大程度地决定了线程池的任务分配和线程分配策略
+
+1. 并行执行子任务，提高响应速度。这种情况下，应该使用同步队列，没有什么任务应该被缓存下来，而是应该立即执行。
+2. 并行执行大批次任务，提升吞吐量。这种情况下，应该使用有界队列，使用队列去缓冲大批量的任务，队列容量必须声明，防止任务无限制堆积
+
+* 在Java线程池留有高扩展性的基础上，封装线程池，允许线程池监听同步外部的消息，根据消息进行修改配置
+* 将线程池的配置放置在平台侧，允许开发同学简单的查看、修改线程池配置
+* 在线程池执行任务的生命周期添加监控能力，帮助开发同学了解线程池状态
+
+动态化线程池提供如下功能：
+1. 动态调参：支持线程池参数动态调整、界面化操作；包括修改线程池核心大小、最大核心大小、队列长度等；参数修改后及时生效。 
+2. 任务监控：支持应用粒度、线程池粒度、任务粒度的Transaction监控；可以看到线程池的任务执行情况、最大任务执行时间、平均任务执行时间、95/99线等。 
+3. 负载告警：线程池队列任务积压到一定值的时候会通过大象（美团内部通讯工具）告知应用开发负责人；当线程池负载数达到一定阈值的时候会通过大象告知应用开发负责人。 
+4. 操作监控：创建/修改和删除线程池都会通知到应用的开发负责人。 
+5. 操作日志：可以查看线程池参数的修改记录，谁在什么时候修改了线程池参数、修改前的参数值是什么。 权限校验：只有应用开发负责人才能够修改应用的线程池参数。
+
+-----
+|任务类型|任务描述|数值运算|
+|-------|------|-------|
+|CPU密集型|比如加密、解密、压缩、计算等一系列需要大量耗费 CPU 资源的任务|最佳线程数 = CPU 核心数+1 - 2N|
+|IO密集型|比如数据库、文件的读写，网络通信等任务，这种任务的特点是并不会特别消耗 CPU 资源，但是 IO 操作很耗时，总体会占用比较多的时间|线程数 = CPU 核心数 * (1+ IO 耗时/CPU 耗时)|
