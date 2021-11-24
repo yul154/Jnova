@@ -1,5 +1,125 @@
 ![image](https://user-images.githubusercontent.com/27160394/138216027-a9bd8b72-bce9-4e36-a45a-0811ddf473f8.png)
 
+## List
+
+> ArrayList 如何扩容
+ArrayList 内部是通过 Object 数组实现的，而数组的长度一经定义，就无法更改了
+
+```
+public boolean add(E e) {
+    ensureCapacityInternal(size + 1);  // Increments modCount!!
+    elementData[size++] = e;
+    return true;
+}
+```
+* 首先调用`ensureCapacityInternal`方法，入参`minCapacity`为`ArrayList`包含的实际元素个数`size + 1`
+
+```
+private void ensureCapacityInternal(int minCapacity) {
+    ensureExplicitCapacity(calculateCapacity(elementData, minCapacity));
+}
+
+private static int calculateCapacity(Object[] elementData, int minCapacity) {
+    if (elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA) {
+        // 如果是空ArrayList，则容量为 DEFAULT_CAPACITY 和 minCapacity 的最大值
+        return Math.max(DEFAULT_CAPACITY, minCapacity);
+    }
+    return minCapacity;
+}
+```
+* 如果通过无参构造方法进行创建的
+ * 那么满足下`elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA`，如果是添加第一个元素，则minCapacity 为 1，则数组扩容到 DEFAULT_CAPACITY 大小为10
+ * `addAll`方法可以一次向 `ArrayList`中添加多个元素，新增加的元素个数可能大于`DEFAULT_CAPACITY`
+
+```
+private void ensureExplicitCapacity(int minCapacity) {
+    modCount++;
+
+    // overflow-conscious code
+    if (minCapacity - elementData.length > 0)
+        grow(minCapacity); // 容量不够的话，会调用 grow 方法 进行扩容操作。
+}
+```
+* ensureExplicitCapacity 方法确保 ArrayList 有足够的容量存放新的元素。
+
+
+```
+private void grow(int minCapacity) {
+    // overflow-conscious code
+    int oldCapacity = elementData.length;
+    // 新容量扩大到原容量的1.5倍
+    int newCapacity = oldCapacity + (oldCapacity >> 1);
+    if (newCapacity - minCapacity < 0)
+        // 如果新容量还是比所需的最小容量小，则让新容量等于所需的最小容量
+        newCapacity = minCapacity;
+    if (newCapacity - MAX_ARRAY_SIZE > 0)
+        // 如果新容量超过了Integer.MAX_VALUE - 8，继续计算
+        newCapacity = hugeCapacity(minCapacity);
+    // minCapacity is usually close to size, so this is a win:
+    // 所需的最小容量minCapacity 接近size
+    elementData = Arrays.copyOf(elementData, newCapacity);
+}
+
+private static int hugeCapacity(int minCapacity) {
+    if (minCapacity < 0) // overflow
+        throw new OutOfMemoryError();
+    return (minCapacity > MAX_ARRAY_SIZE) ?
+        Integer.MAX_VALUE :
+    MAX_ARRAY_SIZE;
+}
+
+```
+* `oldCapacity >> 1`是位运算的右移操作，右移一位相当于除以2，新的容量`newCapacity`为之前容量的1.5倍
+
+
+> ArrayList 扩容每次都是原容量的1.5倍吗？
+* 当使用无参构造方法创建一个 ArrayList 实例，调用 add 方法添加第一个元素的时候，calculateCapacity 方法返回的是默认初始容量 DEFAULT_CAPACITY 大小为10；
+* 当使用指定初始容量创建ArrayList 实例，调用 addAll 方法添加多个元素的时候，原容量的1.5倍也无法存放元素的时候，会创建一个更大（不会超过 Integer.MAX_VALUE）的数组来存放元素
+
+> ArrayList 的 add 操作如何优化？
+* 扩容需要移动数据，非常影响性能。那么优化的重点就是尽量避免 ArrayList 内部进行内部扩容。对于add 操作，如果添加的元素个数已知，最好使用指定初始容量的构造方法创建 ArrayList 实例或者在添加元素之前执行`ensureCapacity`方法确保有足够的容量来存放add操作的元素
+
+
+> ArrayList 的构造方法
+1. 无参构造方法 ： Java8 中使用了延迟初始化，使用无参构造方法，并不会马上创建长度为 10 的数组，而是在调用 add 方法添加第一个元素的时候才对 elementData 数组进行初始化
+2. 指定初始容量的构造方法: 
+  *  传入初始容量 initialCapacity，如果初始容量大于 0，那么直接创建一个指定大小的 Object 数组；
+  *  如果初始容量等于0，elementData 指向共享的空数组实例 EMPTY_ELEMENTDATA
+  *  如果初始容量小于0，抛出 IllegalArgumentException 异常
+
+
+> ArrayList 源码中为何定义两个 Object 数组呢？EMPTY_ELEMENTDATA 和 DEFAULTCAPACITY_EMPTY_ELEMENTDATA 各有什么用处
+这两个常量都是空Object数组的引用，都表示ArrayList实例的空状态，即elementData数组中没有元素。
+* `EMPTY_ELEMENTDATA`使用指定初始容量的构造方法`ArrayList(int initialCapacity)`和指定初始集合的构造方法`ArrayList(Collection<? extends E> c)`时使用。
+* `DEFAULTCAPACITY_EMPTY_ELEMENTDATA` 是使用无参构造方法时使用的。
+
+> ArrayList 中的size 和 capacity 怎么理解？
+
+* size 用于记录 ArrayList 实例中 elementData 数组中元素的个数，
+* capacity 是elementData 数组的长度（包括已使用的数组空间和未使用的数组空间）
+
+> 在索引中ArrayList的增加或者删除某个对象的运行过程？效率很低吗？解释一下为什么？
+* 增加元素时，我们要把要增加位置及以后的所有元素都往后移一位，先腾出一个空间，然后再进行添加。
+* 删除某个元素时，我们也要把删除位置以后的元素全部元素往前挪一位，通过覆盖的方式来删除。
+* 如果遇到了需要频繁插入或者是删除的时候，你可以选择其他的Java集合，比如LinkedList
+
+```
+System. arraycopy方法实现数组的复制1-1：
+System中提供了一个native静态方法arraycopy()，可以使用这个方法实现数组之间的复制。
+对于普通的一维数组来说，会复制每个数组的值到另一个数组中，即每个元素都是按值传递，修改副本不会影响原来的值。
+```
+
+>  ArrayList 的Remove  方法
+1. 获取指定位置 index 处的元素值
+2. 将 index + 1 及之后的元素向前移动一位
+3. 将最后一个元素置空，并将 size 值减 1
+4. 返回被删除值，完成删除操作
+
+
+> Linkedlist 扩容机制
+* LinkedList是离散空间所以不需要主动扩容，而ArrayList是连续空间，内存空间不足时，会主动扩容
+* .由于他的底层是用双向链表实现的，没有初始化大小，所以没有油扩容机制，就是一直在前面或者是后面新增就好
+
 
 ## HASHMAP
 
