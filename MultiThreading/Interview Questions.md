@@ -1,3 +1,10 @@
+> 解决线程安全问题的方式
+1.使用synchronized关键字
+2.使用Lock接口下的实现类
+3.使用线程本地存储ThreadLocal
+4.使用乐观锁机制(CAS)
+
+
 > Java有几种实现线程的方法
 * Runnable --> run() 实现Runnable接口
 * Callable --> call() 实现Callable接口
