@@ -12,9 +12,11 @@
   * `wait()` and `notify`,`notifyAll`
   * `await()` and `signal`,`signalAll`
 * JUC `java.util.concurrent`
- *  AQS
- *  others
- * Thread-Safe Collections
+  *  AQS
+  *  tools
+  *  Thread-Safe Collections
+  *  Atomic
+  *  Executors
 * JMM
 * Thread-unsafe
 * Thread-safe
