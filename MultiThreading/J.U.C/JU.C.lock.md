@@ -1,9 +1,10 @@
-* AQS
-  * 独占
-    *  ReentrantLock 
-  * 共享 
-    *  CountDownLatch
-    *  ReentrantReadWriteLock
+JUC
+ - `Package java.util.concurrent.locks`
+    -  AQS
+    	-  独占 -> ReentrantLock 
+    	-  共享 -> CountDownLatch
+    - ReadWriteLock
+    	- ReentrantReadWriteLock
 * 其它组件
 -----
 # AbstractQueuedSynchronizer - AQS
@@ -444,52 +445,123 @@ Summary
    * CyclicBarrier 一般用于一组线程互相等待至某个状态，然后这一组线程再同时执行；
    * 另外，CountDownLatch 是不能够重用的，而 CyclicBarrier 是可以重用的。*
 * Semaphore 其实和锁有点类似，它一般用于控制对某组资源的访问权限。
+
 ----
+# `ReadWriteLock`
+```
+public interface ReadWriteLock {
+
+    Lock readLock();
+
+    Lock writeLock();
+}
+
+```
+
 ## ReentrantReadWriteLock
 > 读写锁维护了一对相关的锁，一个用于只读操作，一个用于写入操作
+
 
 读写锁允许对共享数据进行更高性能的并发访问
 * 对于写操作，一次只有一个线程（write线程）可修改共享数据
 * 对于读操作，允许任意数量的线程同时读取
 
-### 获取顺序：此类不会将读/写者优先强加给锁访问的排序
-ReentrantReadWriteLock 基于 AbstractQueuedSynchronizer实现，具有如下属性
-* 非公平模式（默认）
-  * 连续竞争的非公平锁可能无限期地推迟一个或多个reader或writer线程，但吞吐量通常要高于公平锁
+* 读-读不互斥：读读之间不阻塞
+* 读-写互斥：读堵塞写，写也阻塞读
+* 写-写互斥：写写阻塞
 
-* 公平模式
-  * 线程利用一个近似到达顺序的策略来竞争进入。 
-  * 当释放当前持有的锁时，可以为等待时间最长的单个writer线程分配写锁，如果有一组等待时间大于所有正在等待的writer线程的reader，将为该组分配读锁。
-  * 试图获得公平写入锁的非重入的线程将会阻塞，除非读取锁和写入锁都自由（这意味着没有等待线程）。
 
-### 重入
-* 此锁允许reader和writer按照 ReentrantLock 的样式重新获取读/写锁。在写线程保持的所有写锁都已释放后，才允许重入reader使用读锁
-* writer可以获取读取锁，但reader不能获取写入锁。
+`ReentrantReadWriteLock`为`ReadWriteLock`接口的实现，
+* 在ReentrantReadWriteLock中定义了两个内部类`ReadLock`、`WriteLock`，分别来实现读锁和写锁。R
+* ReentrantReadWriteLock底层是通过AQS来实现锁的获取与释放的，因此ReentrantReadWriteLock内部还定义了一个继承了AQS类的同步组件Sync，
+* 同时ReentrantReadWriteLock还支持公平与非公平性，因此它内部还定义了两个内部类FairSync、NonfairSync，它们继承了Sync
 
-### 锁降级
-* 重入还允许从写锁降级为读锁，实现方式是：先获取写锁，然后获取读取锁，最后释放写锁。
-* 但是，从读取锁升级到写入锁是不可能的
 
-### 锁获取的中断
-读锁和写锁都支持锁获取期间的中断。
+* 除了接口方法之外，ReentrantReadWriteLock  还提供了一些便于外界监控其内部工作状态的方法
 
-### Condition 支持
-* 写锁提供了一个 Condition 实现，对于写锁来说，该实现的行为与 ReentrantLock.newCondition() 提供的 Condition 实现对 ReentrantLock 所做的行为相同。
-* 当然，此 Condition 只能用于写锁。
-* 读锁不支持 Condition，readLock().newCondition() 会抛UnsupportedOperationException
----
-# AQS
-记录当前加锁的是哪个线程，初始化状态下，这个变量是null
-* 每次线程1可重入加锁一次，会判断一下当前加锁线程就是自己，那么他自己就可以可重入多次加锁，每次加锁就是把state的值给累加1，别的没啥变化
+```
+int getReadLockCount(): 返回当前读锁被获取的次数。该次数不等于获取读锁的线程数，例如，仅一个线程，他连续获取（重进入）了 n 次读锁，那么占据读锁的线程数是 1 ，但该方法返回 n。
+int getReadHoldCount():返回当前线程获取读锁的次数。该方法在 Java 6 中加入到 ReentrantReadWriteLock 中，使用 ThreadLocal 保存当前线程获取次数，这也使得 Java 6 的实现变得更加复杂
+boolean isWriteLocked() : 判断写锁是否被获取
+int getWriteHoldCount(): 返回当前写锁被获取的次数
+```
 
-## 我们来看看锁的互斥是如何实现的
 
----
+**锁的状态**
+>  ReentrantReadWriteLock也是通过AQS来实现锁的
+* 在AQS中，通过int类型的全局变量state来表示同步状态，即用state来表示锁
+* 由于state是int类型的变量，在内存中占用4个字节，也就是32位。
+* 将其拆分为两部分：高16位和低16位，其中高16位用来表示读锁状态，低16位用来表示写锁状态。
+* 当设置读锁成功时，就将高16位加1，释放读锁时，将高16位减1；
+* 当设置写锁成功时，就将低16位加1，释放写锁时，将第16位减1
 
-## AQS只有一个状态，那么如何表示 多个读锁 与 单个
-一个状态是没法既表示读锁，又表示写锁的，显然不够用啊，那就辦成两份用了!
-* 状态的高位部分表示读锁，低位表示写锁
-* 由于写锁只有一个，所以写锁的重入计数也解决了，这也会导致写锁可重入的次数减小
+> 那么如何根据state的值来判断当前锁的状态时写锁还是读锁呢？
+* 假设锁当前的状态值为S，将S和16进制数0x0000FFFF进行与运算，即S&0x0000FFFF，运算时会将高16位全置为0，将运算结果记为c，那么c表示的就是写锁的数量。
+* 如果c等于0就表示还没有线程获取锁；如果c不等于0，就表示有线程获取到了锁，c等于几就代表写锁重入了几次。
+* 将S无符号右移16位（S>>>16），得到的结果就是读锁的数量。当S>>>16得到的结果不等于0，且c也不等于0时，就表示当前线程既持有了写锁，也持有了读锁
 
-由于读锁可以同时有多个，肯定不能再用辦成两份用的方法来处理了
-* 可以把线程重入读锁的次数作为值存在 ThreadLocal
+> 当成功获取到读锁时，如何对读锁进行加1呢？
+* S +（1<<16）得到的结果，就是将对锁加1。释放读锁是，就进行S - (1<<16)运算。
+* 当成功获取到写锁时，令S+1即表示写锁状态+1；释放写锁时，就进行S-1运算。
+* 由于读锁和写锁的状态值都只占用16位，所以读锁的最大数量为 -1，写锁可被重入的最大次数为-1。
+
+
+**读写机制**
+* ReentrantReadWriteLock的构造方法中如果不传参数，默认创建的是非公平的读写锁
+* 在读写锁中，仍然是非公平的读写锁性能要由于公平的读写锁
+```
+ReadWriteLock lock = new ReentrantReadWriteLock();
+// 创建读锁
+Lock readLock = lock.readLock();
+// 创建写锁
+Lock writeLock = lock.writeLock();
+
+```
+
+ReentrantReadWriteLock 的实现选择了“不允许插队”的策略，这就大大减小了发生“饥饿”的概率
+```
+插队策略
+公平策略下
+* 只要队列里有线程已经在排队，就不允许插队。
+非公平策略下：
+* 如果允许读锁插队，那么由于读锁可以同时被多个线程持有，所以可能造成源源不断的后面的线程一直插队成功，导致读锁一直不能完全释放，从而导致写锁一直等待，为了防止“饥饿”，在等待队列的头结点是尝试获取写锁的线程的时候，不允许读锁插队。
+* 写锁可以随时插队，因为写锁并不容易插队成功，写锁只有在当前没有任何其他线程持有读锁和写锁的时候，才能插队成功，同时写锁一旦插队失败就会进入等待队列，所以很难造成“饥饿”的情况，允许写锁插队是为了提高效率。
+
+```
+**写锁加锁**
+1. writeLock.lock()。
+2. AQS的`acquire()`
+3. `tryAcquire()`
+	* 由于写锁是排他锁，所以写锁的获取过程几乎与ReentrantLock获取锁的逻辑一样。
+4. `exclusiveCount()`方法来计算写锁的数量
+5. 当前线程就调用writerShouldBlock()方法判断线程是否需要等待
+6. 需要的话那么就会回到AQS的acquire()方法中，后面的逻辑与排他锁的逻辑一样
+   * 如果不需要等待，就尝试去修改state的值
+7. 如果state不等于0，那么就表示存在读锁或者写锁
+8. 通過變量判斷是讀鎖还是写锁
+9. 判断持有锁的线程是否是当前线程。如果不是当前线程，那么tryAcquire()返回false
+
+**写锁释放**
+1.  writeLock.unlock()时，
+2.  AQS的release()方法，
+3.  调用子类的tryRelease()方法
+
+
+**读锁加锁**
+1. 读锁是共享锁，所以当调用readLock.lock()方法时，会
+2. AQS的`acquiredShared()`方法，
+3. 调用子类的`tryAcquireShared()`方法
+4. 先通过`exclusiveCount()`方法来计算写锁的数量，如果写锁存在，再判断持有写锁的线程是不是当前线程
+5. 判断当前线程获取读锁是否不需要排队
+6. 统计读锁的数量以及当前线程对读锁的重入次数，底层原理就是`ThreadLocal`
+
+
+
+## 特点
+* 公平性选择: 支持非公平（默认）和公平的锁获取模式，吞吐量还是非公平优于公平
+* 重入性: 该锁支持重入锁，以读写线程为例：读线程在获取读锁之后，能够再次读取读锁，而写线程在获取写锁之后可以同时再次获取读锁和写锁
+* 锁降级: 遵循获取写锁，获取读锁再释放写锁的次序，写锁能够降级为读锁
+
+
+
+
