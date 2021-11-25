@@ -39,6 +39,14 @@ public E get(int index) {
 ## JUC
 
 ### Blocking Queue
+阻塞队列（BlockingQueue）是一个支持两个附加操作的队列。这两个附加的操作支持阻塞的插入和移除方法。
+
+* 支持阻塞的插入方法：意思是当队列满时，队列会阻塞插入元素的线程，直到队列不满。
+* 支持阻塞的移除方法：意思是在队列为空时，获取元素的线程会等待队列变为非空。
+
+阻塞队列常用于生产者和消费者的场景，生产者是向队列里添加元素的线程，消费者是从队列里取元素的线程。阻塞队列就是生产者用来存放元素、消费者用来获取元素的容器。
+
+
 
 |Collection|Describtion|
 |----|----|
@@ -51,6 +59,7 @@ public E get(int index) {
 
 
 ### Concurrency series
+
 |Collection|describtion|
 |----------|-----------|
 |`ConcurrentHashMap<K,V>`	|A hash table supporting full concurrency of retrievals and high expected concurrency for updates.|
