@@ -1,11 +1,6 @@
-JUC
- - `Package java.util.concurrent.locks`
-    -  AQS
-    	-  独占 -> ReentrantLock 
-    	-  共享 -> CountDownLatch
-    - ReadWriteLock
-    	- ReentrantReadWriteLock
-* 其它组件
+`java.util.concurrent`
+  - `.locks`
+	- `Class AbstractQueuedSynchronizer`
 -----
 # AbstractQueuedSynchronizer - AQS
 > AQS框架是J.U.C中实现锁及同步机制的基础,使用一个Volatile的int类型的成员变量来表示同步状态，通过内置的FIFO队列来完成资源获取的排队工作，通过CAS完成对State值的修改。
