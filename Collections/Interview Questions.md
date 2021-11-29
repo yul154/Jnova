@@ -239,6 +239,30 @@ Hashtable ： Hashtable 和 HashMap的实现原理几乎一样，差别无非是
 但是 Hashtable 线程安全的策略实现代价却太大了，简单粗暴，get/put 所有相关操作都是 synchronized 的，这相当于给整个哈希表加了一把大锁，多线程访问时候，只要有一个线程访问或操作该对象，那其他线程只能阻塞，相当于将所有的操作串行化，在竞争激烈的并发场景中性能就会非常差
 
 ConcurrentHashMap 所采用的 "分段锁" 思想，而如果容器中有多把锁，每一把锁锁一段数据，这样在多线程访问时不同段的数据时，就不会存在锁竞争了
+---
+## TreeMap
+> 实现了SotredMap接口，它是有序的集合。而且是一个红黑树结构，每个key-value都作为一个红黑树的节点
+```
+private final Comparator<? super K> comparator;  //比较器，是自然排序，还是定制排序 ，使用final修饰，表明一旦赋值便不允许改变
+private transient Entry<K,V> root = null;  //红黑树的根节点
+private transient int size = 0;     //TreeMap中存放的键值对的数量
+private transient int modCount = 0;   //修改的次数
+```
+TreeMap提供了四个构造方法，实现了方法的重载。无参构造方法中比较器的值为null,采用自然排序的方法，如果指定了比较器则称之为定制排序.
+```
+自然排序：TreeMap的所有key必须实现Comparable接口，所有的key都是同一个类的对象
+定制排序：创建TreeMap对象传入了一个Comparator对象，该对象负责对TreeMap中所有的key进行排序，采用定制排序不要求Map的key实现Comparable接口。等下面分析到比较方法的时候在分析这两种比较有何不同。
+```
+
+```
+红黑树是一个更高效的检索二叉树，有如下特点：
+每个节点只能是红色或者黑色
+根节点永远是黑色的
+所有的叶子的子节点都是空节点，并且都是黑色的
+每个红色节点的两个子节点都是黑色的（不会有两个连续的红色节点）
+从任一个节点到其子树中每个叶子节点的路径都包含相同数量的黑色节点（叶子节点到根节点的黑色节点数量每条路径都相同）
+任意插入红黑树的节点必须是红色的
+```
 
 ---
 # ConcurrentHashMap
@@ -291,9 +315,34 @@ modCount remove和clean方法里操作元素前都会将变量modCount进行加1
 * 扩容的时间不同： HashMap是先将键值对插入后，再判断是否需要进行扩容；而ConcurrentHashMap的segment是先判断是否需要扩容，再插入键值对。HashMap很可能在扩容之后没有键值对再插入，这时就进行了一次无效的扩容。
 * 扩容倍数相同： segment的扩容也是将HashEntry数组容量扩大两倍。
 * 扩容的范围不同： 为了高效， ConcurrentHashMap 不会对整个容器进行扩容，而只对某个 segment 进行扩容。
+----
+# Set
+## HashSet
 
+HashSet底层完全就是在HashMap的基础上包了一层，只不过存储的时候value是默认存储了一个Object的静态常量，取的时候也是只返回key，所以看起来就像List一样。
 
+```
+private static final Object PRESENT = new Object();
+public HashSet() {
+        map = new HashMap<>();
+    }
 
+public Iterator<E> iterator() {
+    return map.keySet().iterator();
+}
+
+public boolean add(E e) {
+        return map.put(e, PRESENT)==null;
+    }
+      
+```
+## TreeSet
+TreeSet实现了SortedSet接口，它是一个有序的集合类
+* TreeSet的底层是通过TreeMap实现的。
+* TreeSet并不是根据插入的顺序来排序，而是根据实际的值的大小来排序。
+* TreeSet也支持两种排序方式
+    * 自然排序
+    * 自定义排序
 ----
 ##  ConcurrentHashMap在JDK1.8中的
 > 直接用Node数组+链表+红黑树的数据结构来实现，并发控制使用`Synchronized`和`CAS`来操作
