@@ -442,10 +442,14 @@ JDK1.8 size 是通过对 baseCount 和 counterCell 进行 CAS 计算，最终通
 
 Map的size可能超过 MAX_VALUE所以还有一个方法`mappingCount()`JDK的建议使用`mappingCount()`而不是`size()`
 
-* 如果没有冲突发生，只将 size 的变化写入 baseCount。
-* 一旦发生冲突，就用一个数组（counterCells）来存储后续所有 size 的变化。这样，线程只要对任意一个数组元素写入 size 变化成功即可，数组长度越长，线程发生冲突的可能性就越小
-* 如果counterCells不为空，那么总共的大小就是baseCount与遍历counterCells的value值累加获得的
+* addCount 有一种思想，即当一个集合发生过并发时，其后续发生的并发可能性也越高，所以会先判断 CounterCells 是否为空，
+    * 如果不为空，则后续不再考虑在 baseCount 上操作。这种思想应当应用在大部分场景中
+*  使用一个volatile类型的变量baseCount记录元素的个数，当插入新数据put()或则删除数据remove()时，会通过addCount()方法更新baseCount
+*  初始化时counterCells为空，在并发量很高时，如果存在两个线程同时执行CAS修改baseCount值，则失败的线程会继续执行方法体中的逻辑，执行fullAddCount(x, uncontended)方法，这个方法其实就是初始
+*  如果并发导致 baseCount CAS 失败了使用 counterCells
+* counterCells这个数组，实际上size和table一致，这样Counter中的value就是这个数组中index对应到table中bucket的长度
 * JDK1.8 size是通过对`baseCount`和`counterCell`进行 CAS 计算，最终通过`baseCount`和遍历`CounterCell`数组得出 size
+* 所以counterCells存储的都是value为1的CounterCell对象，而这些对象是因为在CAS更新baseCounter值时，由于高并发而导致失败，最终将值保存到CounterCell中，放到counterCells里。这也就是为什么sumCount()中需要遍历counterCells数组，sum累加CounterCell.value值了
 
 
 
