@@ -438,6 +438,8 @@ private transient volatile int sizeCtl;
 ### Size
 > ConcurrentHashMap提供了 baseCount、counterCells 两个辅助变量和一个 CounterCell 辅助内部类。sumCount() 就是迭代 counterCells 来统计 sum 的过程
 
+JDK1.8 size 是通过对 baseCount 和 counterCell 进行 CAS 计算，最终通过 baseCount 和 遍历 CounterCell 数组得出 size
+
 Map的size可能超过 MAX_VALUE所以还有一个方法`mappingCount()`JDK的建议使用`mappingCount()`而不是`size()`
 
 * 如果没有冲突发生，只将 size 的变化写入 baseCount。
