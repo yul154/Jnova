@@ -329,6 +329,36 @@ try {
 5.如果getTask结果为null则跳出循环，执行processWorkerExit()方法，销毁线程。
 
 ----
+## 关闭线程池
+ExecutorService 接口提供了三个方法用于手动关闭线程池
+* shutdown()
+* shutdownNow()
+* awaitTermination()
+
+* ThreadPoolExecutor 使用 runState (运行状态)这个变量对线程池的生命周期进行控制，线程池关闭过程会有频繁的运行状态转化
+* 程池运行状态存储在AtomicInteger类型的变量ctl的最高三位中
+
+
+shutdown + awaitTermination关闭线程池是最标准的方式
+
+`shutdown()`
+* 开始有序关闭线程池，与此同时，已提交的任务将继续执行，但不再接收新的任务，如果线程池已关闭，此方法调用不会产生额外影响
+* 这个方法不会阻塞，也就是说任务队列的任务会继续执行，但是其他的线程可能会抢在这些任务之前执行
+
+`shutdownNow()`
+* 尝试终止所有正在执行的任务，并停止处理等待队列中的的任务，最后将所有未执行的任务列表的形式返回
+* 此方法会尽最大努力终止正在执行的任务，除此之外不做其他保证，因为此方法底层实现是通过 Thread 类的interrupt()方法终止任务的，所以interrupt()未能终止的任务可能无法结束
+
+ `awaitTermination()`
+ * 当使用awaitTermination时，主线程会处于一种等待的状态，等待线程池中所有的线程都运行完毕后才继续运行
+ * 可以用awaitTermination()方法来判断线程池中是否有继续运行的线程。
+ * 接收人timeout和TimeUnit两个参数，用于设定超时时间及单位。当等待超过设定时间时，会监测ExecutorService是否已经关闭，若关闭则返回true，否则返回false。一般情况下会和shutdown方法组合使用
+
+线程池自动关闭的两个条件：
+1. 线程池的引用不可达；
+2. 线程池中没有线程；
+
+----
 *线程池分类 *
 * `newFixedThreadPool()` 说明：初始化一个指定线程数的线程池，其中 corePoolSize == maxiPoolSize，使用 LinkedBlockingQuene 作为阻塞队列 特点：即使当线程池没有可执行任务时，也不会释放线程。(用于负载比较重的服务器，为了资源的合理利用，需要限制当前线程数量)
 * `newCachedThreadPool()` 说明：初始化一个可以缓存线程的线程池，默认缓存60s，线程池的线程数可达到 Integer.MAX_VALUE，即 2147483647，内部使用 SynchronousQueue 作为阻塞队列； 特点：在没有任务执行时，当线程的空闲时间超过 keepAliveTime，会自动释放线程资源；当提交新任务时，如果没有空闲线程，则创建新线程执行任务，会导致一定的系统开销； 因此，使用时要注意控制并发的任务数，防止因创建大量的线程导致而降低性能。(用于并发执行大量短期的小任务，或者是负载较轻的服务器；)
