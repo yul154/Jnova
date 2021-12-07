@@ -44,6 +44,7 @@
   
 ----
 # 常见类使用
+
 * 磁盘操作: File
 * 字节操作: InputStream 和 OutputStream
 * 字符操作: Reader 和 Writer
@@ -64,6 +65,8 @@ URL url = new URL("http://www.baidu.com");//可以直接从 URL 中读取字节�
 
 ## Sockets
 > TCP用主机的IP地址加上主机上的端口号作为TCP连接的端点，这种端点就叫做套接字（socket）或插口
+
+套接字(Socket)，就是对网络中不同主机上的应用进程之间进行双向通信的端点的抽象
 
 Socket是进程通讯的一种方式，即调用这个网络库的一些API函数实现分布在不同主机的相关进程之间的数据交换
 *  `bind`: 将套接字绑定一个IP地址和端口号，因为这两个元素可以在网络环境中唯一地址表示一个进程
@@ -86,7 +89,6 @@ Socket是进程通讯的一种方式，即调用这个网络库的一些API函�
 客户端绑定IP和PORT：new Socket(IP_ADDRESS, PORT)
 客户端传输接收数据：BufferedReader PrintWrite
 ```
-
 ----
 # IO 模型
 一个输入操作通常包括两个阶段:
@@ -99,7 +101,6 @@ Socket是进程通讯的一种方式，即调用这个网络库的一些API函�
 * I/O 复用(select 和 poll)
 * 信号驱动式 I/O(SIGIO)
 * 异步 I/O(AIO)
-
 
 ### 阻塞式 I/O
 应用进程被阻塞，直到数据复制到应用进程缓冲区中才返回。
@@ -167,11 +168,10 @@ epoll 应用场景
 
 
 ## BIO通信方式
-
-* 客户端向服务器端发出请求后，客户端会一直等待(不会再做其他事情)，直到服务器端返回结果或者网络出现问题。 
-* 服务器端同样的，当在处理某个客户端A发来的请求时，另一个客户端B发来的请求会等待，直到服务器端的这个处理线程完成上一个处理。
+> Java BIO是传统的Java io编程，相关的类和接口在`java.io`包中
 
 服务器通过一个 Acceptor 线程负责监听客户端请求和为每个客户端创建一个新的线程进行链路处理。典型的一请求一应答模式。
+* 服务器提供IP地址和监听的端口，客户端通过TCP的三次握手与服务器连接，连接成功后，双放才能通过套接字(Stock)通信。
 * 若客户端数量增多，频繁地创建和销毁线程会给服务器打开很大的压力。后改良为用线程池的方式代替新增线程，被称为伪异步IO
 
 **伪异步I/O模型“**
@@ -181,17 +181,19 @@ epoll 应用场景
 <img width="598" alt="Screen Shot 2021-12-07 at 11 01 49 AM" src="https://user-images.githubusercontent.com/27160394/144958433-5dffaac6-d498-42f0-ba75-5dc2009147e9.png">
 
 
-
 > BIO模型中通过 Socket 和 ServerSocket 完成套接字通道的实现。阻塞，同步，建立连接耗时
 
+
 ## NIO
-> 一种同步非阻塞的通信模式
+> 一种同步非阻塞的通信模式,相关类都被放在 java.nio 包及子包下
 
 * 缓冲区Buffer：它是NIO与BIO的一个重要区别。BIO是将数据直接写入或读取到Stream对象中。而NIO的数据操作都是在缓冲区中进行的。缓冲区实际上是一个数组。Buffer最常见的类型是ByteBuffer，另外还有CharBuffer，ShortBuffer，IntBuffer，LongBuffer，FloatBuffer，DoubleBuffer。
 
 * 通道Channel：和流不同，通道是双向的。NIO可以通过Channel进行数据的读，写和同时读写操作。通道分为两大类：一类是网络读写（SelectableChannel），一类是用于文件操作（FileChannel），我们使用的SocketChannel和ServerSocketChannel都是SelectableChannel的子类。
 
 * 多路复用器Selector：NIO编程的基础。多路复用器提供选择已经就绪的任务的能力。就是Selector会不断地轮询注册在其上的通道（Channel），如果某个通道处于就绪状态，会被Selector轮询出来，然后通过SelectionKey可以取得就绪的Channel集合，从而进行后续的IO操作。服务器端只要提供一个线程负责Selector的轮询，就可以接入成千上万个客户端，这就是JDK NIO库的巨大进步。
+
+<img width="520" alt="Screen Shot 2021-12-07 at 11 54 47 AM" src="https://user-images.githubusercontent.com/27160394/144963351-a090071e-7b32-4382-b086-43f54fc68b92.png">
 
 
 客户端和服务器之间通过Channel通信。
@@ -214,3 +216,14 @@ epoll 应用场景
 * IO（同步阻塞）：客户端和服务器连接需要三次握手，使用简单，但吞吐量小
 * NIO（同步非阻塞）：客户端与服务器通过Channel连接，采用多路复用器轮询注册的Channel。提高吞吐量和可靠性。
 * AIO（异步非阻塞）：NIO的升级版，采用异步通道实现异步通信，其read和write方法均是异步方法。
+----
+# I/O 复用
+目前流程的多路复用IO实现主要包括四种: select、poll、epoll、kqueue
+
+| IO模型	| 相对性能 | 关键思路| 操作系统| JAVA支持情况|
+|--------|--------|-------|---------|-----------|
+|select|较高|Reactor|windows/Linux|支持,Reactor模式(反应器设计模式)。Linux操作系统的 kernels 2.4内核版本之前，默认使用select；而目前windows下对同步IO的支持，都是select模型|
+|poll|较高|Reactor|Linux|Linux下的JAVA NIO框架，Linux kernels 2.6内核版本之前使用poll进行支持。也是使用的Reactor模式|
+|epoll|高|Reactor/Proactor|Linux|由于Linux下没有Windows下的IOCP技术提供真正的 异步IO 支持，所以Linux下使用epoll模拟异步IO|
+|kqueue|高|Proactor|Linux|目前JAVA的版本不支持|
+
