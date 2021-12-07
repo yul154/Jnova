@@ -66,10 +66,10 @@ URL url = new URL("http://www.baidu.com");//可以直接从 URL 中读取字节�
 > TCP用主机的IP地址加上主机上的端口号作为TCP连接的端点，这种端点就叫做套接字（socket）或插口
 
 Socket是进程通讯的一种方式，即调用这个网络库的一些API函数实现分布在不同主机的相关进程之间的数据交换
-*  `bind`:
-*  `listen`:
-*  `connect`:
-*  ` accept`:
+*  `bind`: 将套接字绑定一个IP地址和端口号，因为这两个元素可以在网络环境中唯一地址表示一个进程
+*  `listen`: 主动连接套接字变为被连接套接口，使得一个进程可以接受其它进程的请求
+*  `connect`: 连接服务器
+*  ` accept`: accept()接受一个客户端的连接请求，并返回一个新的套接字
 *  `read/write函数`:
 
 <img width="562" alt="Screen Shot 2021-12-07 at 10 46 44 AM" src="https://user-images.githubusercontent.com/27160394/144956896-fc9228f1-b8a4-4d7d-b5d0-950cfa0032de.png">
@@ -161,6 +161,9 @@ epoll 应用场景
 同步非阻塞IO（NIO）：用户进程发起一个IO操作以后，可做其它事情，但用户进程需要经常询问IO操作是否完成，这样造成不必要的CPU资源浪费；
 
 异步非阻塞IO（AIO）：用户进程发起一个IO操作然后，立即返回，等IO操作真正的完成以后，应用程序会得到IO操作完成的通知。类比Future模式。
+
+
+![image](https://user-images.githubusercontent.com/27160394/144961570-fcd22eae-a64a-42aa-b549-bb5782ff3c82.png)
 
 
 ## BIO通信方式
