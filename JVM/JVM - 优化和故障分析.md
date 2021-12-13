@@ -1,10 +1,48 @@
 调试排错 
+- JVM调优
+   - JVM调优的时机      
+   - JVM调优的目标
+   - JVM调优的步骤    
+   - Java OOM 分析
 - jvm参数
 - 垃圾回收
-- Java OOM 分析
 - Java线程Dump分析
 - Java问题排查：Linux命令
 - Java问题排查：工具单 
+
+---
+# JVM调优的时机
+
+* Heap内存（老年代）持续上涨达到设置的最大内存值；
+* Full GC 次数频繁；
+* GC 停顿时间过长（超过1秒）；
+* 应用出现OutOfMemory 等内存异常；
+* 应用中有使用本地缓存且占用大量内存空间；
+* 系统吞吐量与响应性能不高或下降。
+
+## JVM调优的目标
+吞吐量、延迟、内存占用三者类似CAP，构成了一个不可能三角，只能选择其中两个进行调优，不可三者兼得
+* 延迟：GC低停顿和GC低频率；
+* 低内存占用；
+* 高吞吐量;
+
+下面展示了一些JVM调优的量化目标参考实例：
+
+```
+Heap 内存使用率 <= 70%;
+Old generation内存使用率<= 70%;
+avgpause <= 1秒;
+Full gc 次数0 或 avg pause interval >= 24小时 ;
+
+```
+## JVM调优的步骤
+* 分析系统系统运行情况：分析GC日志及dump文件，判断是否需要优化，确定瓶颈问题点；
+* 确定JVM调优量化目标；
+* 确定JVM调优参数（根据历史JVM参数来调整）；
+* 依次确定调优内存、延迟、吞吐量等指标；
+* 对比观察调优前后的差异；
+* 不断的分析和调整，直到找到合适的JVM参数配置；
+* 找到最合适的参数，将这些参数应用到所有服务器，并进行后续跟踪。
 
 ----
 # jvm参数
@@ -50,8 +88,10 @@ GC考虑的指标
 
 *  ` -XX:+DisableExplicitGC` 禁用System.gc()，因为它会触发Full GC，这是很浪费性能的，JVM会在需要GC的时候自己触发GC。
 
-*  `-XX:CMSFullGCsBeforeCompaction` : 在多少次GC后进行内存压缩，这个是因为并行收集器不对内存空间进行压缩的，所以运行一段时间后会产生很多碎片，使得运行效率降低。
----
+*  `-XX:CMSFullGCsBeforeCompaction` : 在多少次GC后进行内存压缩，这个是因为并行收集器不对内存空间进行压缩的，所以运行一段时间后会产生很多碎片，使得运行效率降低。   
+
+
+----
 # OOM 分析
 Java OOM 分析
 * Java 堆内存溢出
@@ -88,12 +128,10 @@ Javaheap space 错误产生的常见原因可以分为以下几类：
 * 修改代码
 
 
-
 ## GC overhead limit exceeded
 > 应用程序已经基本耗尽了所有可用内存， GC 也无法回收。
 
 当 Java 进程花费 98% 以上的时间执行 GC，但只恢复了不到 2% 的内存，且该动作连续重复了 5 次，就会抛出 java.lang.OutOfMemoryError:GC overhead limit exceeded
-
 
 
 ## MetaSpace (元数据) 内存溢出
@@ -126,8 +164,9 @@ PermGen 的使用量与加载到内存的 class 的数量/大小正相关。
 
 3. 运行时报错，应用程序可能会动态创建大量 class，而这些 class 的生命周期很短暂，但是 JVM 默认不会卸载 class，可以设置 -XX:+CMSClassUnloadingEnabled 和 -XX:+UseConcMarkSweepGC这两个参数允许 JVM 卸载 class。
 
-4. 如果上述方法无法解决，可以通过 jmap 命令 dump 内存对象 jmap-dump:format=b,file=dump.hprof<process-id> ，然后利用 Eclipse MAT
-
+4.  如果上述方法无法解决，可以通过 jmap 命令 dump 内存对象 jmap-dump:format=b,file=dump.hprof<process-id> ，然后利用 Eclipse MAT
+        
+        
 ----
 # Dump
 
@@ -143,8 +182,7 @@ heap dump文件是一个二进制文件，它保存了某一时刻JVM堆中对�
 * 如果说需要定位内存泄露的代码点，我们可以通过Dominator Tree菜单选项来进行排查
 
 
-  
-
+ 
 Thread Dump是诊断Java应用问题的工具
 * thread dump文件主要保存的是java应用中各线程在某一时刻的运行的位置，即执行到哪一个类的哪一个方法哪一个行上
 * 以stacktrace的方式显示。通过对thread dump的分析可以得到应用是否“卡”在某一点上，即在某一点运行的时间太长，如数据库查询，长期得不到响应，最终导致系统崩溃
@@ -313,6 +351,8 @@ pgm -A -f vm-shopbase 'cat /home/admin/shopbase/logs/shopbase.log.2017-01-17|gre
 root@pdai.tech ~]# ps -ef | grep java // 查看所有进程
 ```
 ----
+        
+        
 # JDK 命令行工具
 * Java 调试入门工具 
   * jps 
@@ -365,6 +405,17 @@ jps -m # main 方法
 jps -l xxx.xxx.xx.xx # 远程查看 
 ```
 
+ ## Jinfo
+ ```
+ // 1.查找对应的应用的 pid
+jps -v // 输出所有 Java 应用，找对应 pid，或使用 ps -ef | grep xxx 来寻找
+      
+// 2.查看该 pid 启动应用时的 VM 参数
+jinfo -flags pid
+ ```
+        
+        
+        
 ## jstack
 > jstack是jdk自带的线程堆栈分析工具，使用该命令可以查看或导出 Java 应用程序中线程堆栈信息。
 
@@ -460,6 +511,8 @@ Server is ready.
 ``
 jstat -gc -h3 31736 1000 10 // 分析进程 id 为 31736 的 gc 情况，每隔 1000ms 打印一次记录，打印 10 次停止，每 3 行后打印指标头部。
 
+// 1.查看应用 GC 次数及平均每次 GC 时间
+jstat -gc pid 5000 // 每 5 秒显示一次 pid 的进程生成 GC 情况
 ``
 
 ## btrace
