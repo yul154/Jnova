@@ -187,12 +187,6 @@ epoll 应用场景
 ## NIO
 > 一种同步非阻塞的通信模式,相关类都被放在 java.nio 包及子包下
 
-* 缓冲区Buffer：它是NIO与BIO的一个重要区别。BIO是将数据直接写入或读取到Stream对象中。而NIO的数据操作都是在缓冲区中进行的。缓冲区实际上是一个数组。Buffer最常见的类型是ByteBuffer，另外还有CharBuffer，ShortBuffer，IntBuffer，LongBuffer，FloatBuffer，DoubleBuffer。
-
-* 通道Channel：和流不同，通道是双向的。NIO可以通过Channel进行数据的读，写和同时读写操作。通道分为两大类：一类是网络读写（SelectableChannel），一类是用于文件操作（FileChannel），我们使用的SocketChannel和ServerSocketChannel都是SelectableChannel的子类。
-
-* 多路复用器Selector：NIO编程的基础。多路复用器提供选择已经就绪的任务的能力。就是Selector会不断地轮询注册在其上的通道（Channel），如果某个通道处于就绪状态，会被Selector轮询出来，然后通过SelectionKey可以取得就绪的Channel集合，从而进行后续的IO操作。服务器端只要提供一个线程负责Selector的轮询，就可以接入成千上万个客户端，这就是JDK NIO库的巨大进步。
-
 <img width="520" alt="Screen Shot 2021-12-07 at 11 54 47 AM" src="https://user-images.githubusercontent.com/27160394/144963351-a090071e-7b32-4382-b086-43f54fc68b92.png">
 
 
@@ -217,13 +211,3 @@ epoll 应用场景
 * NIO（同步非阻塞）：客户端与服务器通过Channel连接，采用多路复用器轮询注册的Channel。提高吞吐量和可靠性。
 * AIO（异步非阻塞）：NIO的升级版，采用异步通道实现异步通信，其read和write方法均是异步方法。
 ----
-# I/O 复用
-目前流程的多路复用IO实现主要包括四种: select、poll、epoll、kqueue
-
-| IO模型	| 相对性能 | 关键思路| 操作系统| JAVA支持情况|
-|--------|--------|-------|---------|-----------|
-|select|较高|Reactor|windows/Linux|支持,Reactor模式(反应器设计模式)。Linux操作系统的 kernels 2.4内核版本之前，默认使用select；而目前windows下对同步IO的支持，都是select模型|
-|poll|较高|Reactor|Linux|Linux下的JAVA NIO框架，Linux kernels 2.6内核版本之前使用poll进行支持。也是使用的Reactor模式|
-|epoll|高|Reactor/Proactor|Linux|由于Linux下没有Windows下的IOCP技术提供真正的 异步IO 支持，所以Linux下使用epoll模拟异步IO|
-|kqueue|高|Proactor|Linux|目前JAVA的版本不支持|
-
