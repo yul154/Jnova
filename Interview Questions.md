@@ -1,4 +1,6 @@
 
+
+
 > java中==和equals和hashCode的区别，重写euqals需要重写hash吗
 
 `==`
