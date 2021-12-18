@@ -1,16 +1,26 @@
-#  NIO
+#  NIO and IO复用
 
-Standard IO是对字节流的读写，在进行IO之前，首先创建一个流对象，流对象进行读写操作都是按字节一个字节一个字节的来读或写。
+**标准I/O存在问题**
+* 流与块
+  * Standard IO是对字节流的读写，在进行IO之前，首先创建一个流对象，流对象进行读写操作都是按字节一个字节一个字节的来读或写。
+  * I/O 与 NIO 最重要的区别是数据打包和传输的方式，I/O 以流的方式处理数据
+    * NIO把IO抽象成块，类似磁盘的读写，每次IO操作的单位都是一个块，块被读入内存之后就是一个byte[]，NIO一次可以读或写多个字节。
+    * 面向块的 I/O 一次处理一个数据块，按块处理数据比按流处理数据要快得多。但是面向块的 I/O 缺少一些面向流的 I/O 所具有的优雅性和简单性
 
-而NIO把IO抽象成块，类似磁盘的读写，每次IO操作的单位都是一个块，块被读入内存之后就是一个byte[]，NIO一次可以读或写多个字节。
 
 
-## 流与块
+* 数据多次拷贝
+ * 标准I/O处理，完成一次完整的数据读写，至少需要从底层硬件读到内核空间，再读到用户文件，又从用户空间写入内核空间，再写入底层硬件
+ * 底层通过write、read等函数进行I/O系统调用时，需要传入数据所在缓冲区起始地址和长度,由于JVM GC的存在，导致对象在堆中的位置往往会发生移动，移动后传入系统函数的地址参数就不是真正的缓冲区地址了 
+  * 为了解决上面的问题，使用标准I/O进行系统调用时，还会额外导致一次数据拷贝：把数据从JVM的堆内拷贝到堆外的连续空间内存(堆外内存)
 
-I/O 与 NIO 最重要的区别是数据打包和传输的方式，I/O 以流的方式处理数据，而 NIO 以块的方式处理数据
-* 面向流的 I/O 一次处理一个字节数据: 一个输入流产生一个字节数据，一个输出流消费一个字节数据。为流式数据创建过滤器非常容易，链接几个过滤器，以便每个过滤器只负责复杂处理机制的一部分。
 
-面向块的 I/O 一次处理一个数据块，按块处理数据比按流处理数据要快得多。但是面向块的 I/O 缺少一些面向流的 I/O 所具有的优雅性和简单性
+<img width="351" alt="Screen Shot 2021-12-18 at 9 18 45 PM" src="https://user-images.githubusercontent.com/27160394/146642442-15a141cf-8d8b-426f-9c35-afd87b1b7a08.png">
+
+* 操作阻塞
+ * 传统的网络I/O处理中，由于请求建立连接(connect)，读取网络I/O数据(read)，发送数据(send)等操作是线程阻塞的
+ * 为了实现服务端并发响应，每个连接需要独立的线程单独处理，当并发请求量大时为了维护连接，内存、线程切换开销过大 
+
 
 
 ## NIO 设计原理
@@ -21,29 +31,51 @@ NIO相对于BIO来说一大进步。客户端和服务器之间通过Channel通�
 * Selector通过一个线程不停的轮询这些Channel。找出已经准备就绪的Channel执行IO操作。
 * NIO 通过一个线程轮询，实现千万个客户端的请求，这就是非阻塞NIO的特点
 
+**Java NIO核心三大核心组件是Buffer(缓冲区)、Channel(通道)、Selector**
 
-* 缓冲区Buffer：BIO是将数据直接写入或读取到Stream对象中。而NIO的数据操作都是在缓冲区中进行的,不会直接对通道进行读写数据，而是要先经过缓冲区。缓冲区实际上是一个数组。
-  * Buffer最常见的类型是ByteBuffer，另外还有CharBuffer，ShortBuffer，IntBuffer，LongBuffer，FloatBuffer，DoubleBuffer。
+### 缓冲区Buffer
 
-* 通道Channel：和流不同，通道是双向的。NIO可以通过Channel进行数据的读，写和同时读写操作。通道分为两大类：一类是网络读写（SelectableChannel），一类是用于文件操作（FileChannel），我们使用的SocketChannel和ServerSocketChannel都是SelectableChannel的子类。
-  *  流只能在一个方向上移动(一个流必须是 InputStream 或者 OutputStream 的子类)
-  *
-* 多路复用器Selector：NIO编程的基础。多路复用器提供选择已经就绪的任务的能力。就是Selector会不断地轮询注册在其上的通道（Channel），如果某个通道处于就绪状态，会被Selector轮询出来，然后通过SelectionKey可以取得就绪的Channel集合，从而进行后续的IO操作。服务器端只要提供一个线程负责Selector的轮询，就可以接入成千上万个客户端，这就是JDK NIO库的巨大进步。
+* BIO是将数据直接写入或读取到Stream对象中。而NIO的数据操作都是在缓冲区中进行的,不会直接对通道进行读写数据，而是要先经过缓冲区。
+* Buffer实际上是一组基本数据类型，存储地址连续的的数组，支持读写操作，对应读模式和写模式，通过几个变量来保存这个数据的当前位置状态：capacity、 position、 limit
+* Buffer最常见的类型是ByteBuffer，另外还有CharBuffer，ShortBuffer，IntBuffer，LongBuffer，FloatBuffer，DoubleBuffer。
 
-小结：NIO模型中通过SocketChannel和ServerSocketChannel完成套接字通道的实现。非阻塞/阻塞，同步，避免TCP建立连接使用三次握手带来的开销。
+### 通道Channel 
+
+NIO中I/O操作主要基于Channel
+  * Channel总是基于缓冲区Buffer读写: 创建一个缓冲区，然后请求Channel读取数据 从Channel进行数据写入 ：创建一个缓冲区，填充数据，请求Channel写入数据
+  * 流只能在一个方向上移动(一个流必须是 InputStream 或者 OutputStream 的子类，通道是双向的。NIO可以通过Channel进行数据的读，写和同时读写操作。
+  * Channel可以异步读写，标准I/O流需要线程阻塞等待直到读写操作完成
+  * 通道分为两大类：一类是网络读写（SelectableChannel ），一类是用于文件操作（FileChannel）
+    * 我们使用的SocketChannel和ServerSocketChannel都是SelectableChannel的子类。
+
+> > NIO模型中通过SocketChannel和ServerSocketChannel完成套接字通道的实现。非阻塞/阻塞，同步，避免TCP建立连接使用三次握手带来的开销。
+ 
+### Selector
+> 允许一个单独的线程同时监视多个通道，可以注册多个通道到同一个选择器上，然后使用一个单独的线程来“选择”已经就绪的通道。这种“选择”机制为一个单独线程管理多个通道提供了可能。
+
+用于检查一个或多个NIO Channel（通道）的状态是否处于可读、可写。实现单线程管理多个Channel，也就是可以管理多个网络连接
+* Selector会不断地轮询注册在其上的通道（Channel），如果某个通道处于就绪状态，会被Selector轮询出来，然后通过SelectionKey可以取得就绪的Channel集合，从而进行后续的IO操作。
+* 服务器端只要提供一个线程负责Selector的轮询，就可以接入成千上万个客户端，这就是JDK NIO库的巨大进步。
+
+#### Java NIO Selector基本工作原理
+1. 初始化Selector对象，服务端ServerSocketChannel对象
+2. 向Selector注册ServerSocketChannel的socket-accept事件
+3. 线程阻塞于selector.select()，当有客户端请求服务端，线程退出阻塞
+4. 基于selector获取所有就绪事件，此时先获取到socket-accept事件，向Selector注册客户端SocketChannel的数据就绪可读事件事件
+5.  线程再次阻塞于selector.select()，当有客户端连接数据就绪，可读
+6.  基于ByteBuffer读取客户端请求数据，然后写入响应数据，关闭chan
 
 
-## 选择器
->  允许一个单独的线程同时监视多个通道，可以注册多个通道到同一个选择器上，然后使用一个单独的线程来“选择”已经就绪的通道。这种“选择”机制为一个单独线程管理多个通道提供了可能。
+## Reactor模型和Proactor模型
 
-NIO 实现了 IO 多路复用中的 Reactor 模型，一个线程 Thread 使用一个选择器 Selector 通过轮询的方式去监听多个通道 Channel 上的事件，从而让一个线程就可以处理多个事件
+
+NIO 实现了 IO 多路复用中的 Reactor 模型
+
+一个线程 Thread 使用一个选择器 Selector 通过轮询的方式去监听多个通道 Channel 上的事件，从而让一个线程就可以处理多个事件
 
 通过配置监听的通道 Channel 为非阻塞，那么当 Channel 上的 IO 事件还未到达时，就不会进入阻塞状态一直等待，而是继续轮询其它 Channel，找到 IO 事件已经到达的 Channel 执行。 
 
 因为创建和切换线程的开销很大，因此使用一个线程来处理多个事件而不是一个线程处理一个事件具有更好的性能。
-
-
-## Reactor模型和Proactor模型
 
 ### 传统IO模型
 
@@ -173,6 +205,43 @@ epoll 应用场景
 * 只需要运行在 Linux 平台上，并且有非常大量的描述符需要同时轮询，而且这些连接最好是长连接
 
 ----
-## Netty
+# 高性能I/O优化
+
+## 零拷贝
+
+### Kakfa
+
+`sendfile` + `DMA Gather Copy`方式实现的零拷贝，数据拷贝次数从4次降为2次，系统调用从2次降为1次，用户进程上下文切换次数从4次变成2次DMA Copy
+* 改进的的sendfile函数 + 硬件提供的DMA Gather Copy实现零拷贝，将文件通过socket传送
+* 函数通过一次系统调用完成了文件的传送，减少了原来read/write方式的模式切换。同时减少了数据的copy
+
+1.用户进程发起sendfile系统调用
+2.内核基于DMA Copy将文件数据从磁盘拷贝到内核缓冲区
+3. 内核将内核缓冲区中的文件描述信息(文件描述符，数据长度)拷贝到Socket缓冲区
+4. 内核基于Socket缓冲区中的文件描述信息和DMA硬件提供的Gather Copy功能将内核缓冲区数据复制到网卡
+5. 用户进程sendfile系统调用完成并返回
+
+
+
+### Netty
 
 Netty是由JBOSS提供的一个java开源框架。Netty提供异步的、事件驱动的网络应用程序框架和工具，用以快速开发高性能、高可靠性的网络服务器和客户端程序
+
+Netty 的零拷贝分为两种：
+
+1 基于操作系统实现的零拷贝，底层基于`FileChannel`的`transferTo`方法
+2 基于Java 层操作优化，对数组缓存对象(ByteBuff)进行封装优化，通过对ByteBuf数据建立数据视图，支持ByteBuff 对象合并，切分，当底层仅保留一份数据存储，减少不必要拷贝
+
+## 页缓存(PageCache)
+
+页缓存（PageCache)是操作系统对文件的缓存，用来减少对磁盘的 I/O 操作，以页为单位的，内容就是磁盘上的物理块
+* 页缓存能帮助程序对文件进行顺序读写的速度几乎接近于内存的读写速度，
+* 主要原因就是由于OS使用PageCache机制对读写访问操作进行了性能优化
+
+
+页缓存读取策略：当进程发起一个读操作 （比如，进程发起一个 read() 系统调用），它首先会检查需要的数据是否在页缓存中：
+* 如果在，则放弃访问磁盘，而直接从页缓存中读取
+* 如果不在，则内核调度块 I/O 操作从磁盘去读取数据，并读入紧随其后的少数几个页面（不少于一个页面，通常是三个页面），然后将数据放入页缓存中
+
+
+
