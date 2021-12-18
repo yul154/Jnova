@@ -2,11 +2,12 @@ I/O的底层实现
 - I/O的term 
 - I/O的分类
 ---
-# I/O
+# I/O 的基本流程
 
 接触最多的就是 磁盘 IO（读写文件） 和 网络 IO（网络请求和响应）
 
 无论是 Socket 的读写还是文件的读写，在 Java 层面的应用开发或者是 linux 系统底层开发，都属于输入 input 和输出 output 的处理，简称为 IO 读写
+
 
 ## 操作系统的基本概念
 
@@ -24,6 +25,7 @@ I/O的底层实现
 
 
 ## I/O 过程
+
 > write 把数据从进程缓冲区复制到内核缓冲区，它们不等价于数据在内核缓冲区和磁盘之间的交换
 
 用户程序进行 IO 的读写，基本上会用到系统调用 read&write
@@ -44,7 +46,7 @@ I/O的底层实现
 
 <img width="546" alt="Screen Shot 2021-12-18 at 4 20 01 PM" src="https://user-images.githubusercontent.com/27160394/146634657-53194294-ef4e-4706-9109-e026dcc6b2ec.png">
 
-1. 客户端请求，Linux通过网卡，读取客户断的请求数据，将数据读取到内核缓冲区
+1. 客户端请求，Linux通过网卡，读取客户不断的请求数据，将数据读取到内核缓冲区
 2. 获取请求数据，服务器从内核缓冲区读取数据到 Java 进程缓冲区。
 3. 服务器端业务处理，Java 服务端在自己的用户空间中，处理客户端的请求。
 4. 服务器端返回数据，Java 服务端已构建好的响应，从用户缓冲区写入系统缓冲区。
@@ -74,9 +76,9 @@ I/O的底层实现
 
 
 
-## Basic concept
+# I/O 模型
 
-### 阻塞式 I/O
+## 阻塞式 I/O
 > 应用进程被阻塞，直到数据复制到应用进程缓冲区中才返回
 
 当进行IO读写时，线程是阻塞的状态。此时会让出cpu控制权，不会占用cpu资源
@@ -85,24 +87,14 @@ I/O的底层实现
 * 用户空间线程是主动发起 IO 请求的一方，内核空间是被动接受方
 * 阻塞状态不会占用CPU，但是会发生线程的切换，线程切换时会有上下文保存转换的过程，需要CPU调度，是一个很昂贵的操作
 
+<img width="369" alt="Screen Shot 2021-12-18 at 5 55 51 PM" src="https://user-images.githubusercontent.com/27160394/146636974-30449026-0e1e-44cb-97ae-22c0406b2be2.png">
 
 ### 非阻塞式 I/O
 
 在进行IO操作的时候，如果设备还未准备好（比如socket还没有收到数据），操作会直接返回结果，不会让当前线程进入阻塞状态
 
 
-### 同步IO：
-
-* 读写IO时代码等数据返回后才继续执行后续代码
-* 代码编写简单，CPU执行效率低
-* JDK提供的`java.io`是同步IO
-
-### 异步IO：
-
-
-* 读写IO时仅发出请求，然后立即执行后续代码
-* 代码编写复杂，CPU执行效率高
-* JDK提供的`java.nio`是异步IO
+<img width="351" alt="Screen Shot 2021-12-18 at 5 56 32 PM" src="https://user-images.githubusercontent.com/27160394/146636990-0e2b6372-ca5f-4be3-9ec9-46fd9ade0056.png">
 
 
 ### I/O 复用
@@ -113,6 +105,34 @@ I/O多路复用技术通过把多个I/O的阻塞复用到同一个Select的阻�
 * 使用 select 或者 poll 等待数据，并且可以等待多个套接字中的任何一个变为可读，这一过程会被阻塞，当某一个套接字可读时返回。之后再使用`recvfrom`把数据从内核复制到进程中
 
 
+
+<img width="336" alt="Screen Shot 2021-12-18 at 5 57 18 PM" src="https://user-images.githubusercontent.com/27160394/146637005-1057cb96-6b75-486b-9abb-ed025590df77.png">
+
+
+
+
+
+### 异步IO：
+
+* 读写IO时仅发出请求，然后立即执行后续代码
+* 代码编写复杂，CPU执行效率高
+* JDK提供的`java.nio`是异步IO
+
+<img width="370" alt="Screen Shot 2021-12-18 at 5 58 04 PM" src="https://user-images.githubusercontent.com/27160394/146637025-b61c9632-a1d0-4786-8040-8101abe4024a.png">
+
+
+### 同步IO：
+
+* 读写IO时代码等数据返回后才继续执行后续代码
+* 代码编写简单，CPU执行效率低
+* JDK提供的`java.io`是同步IO
+
+
+```
+步 I/O 与异步 I/O
+同步 I/O: 应用进程在调用 recvfrom 操作时会阻塞。
+异步 I/O: 不会阻塞。
+```
 
 
 # Java 中 4 种常见 IO 模型
