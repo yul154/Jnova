@@ -24,11 +24,12 @@
 <img width="285" alt="Screen Shot 2021-12-07 at 9 21 48 AM" src="https://user-images.githubusercontent.com/27160394/144948545-7c73cf9c-ea3d-4df1-acfc-1a3dad21582f.png">
 
 
+### 字节流和字符流的区别
+*  面向字节流的InputStream和OutputStream 面向字符的Reader和Writer
+*  字节流读取单个字节，字符流读取单个字符(一个字符根据编码的不同，对应的字节也不同，如 UTF-8 编码是 3 个字节，中文编码是 2 个字节。) 
+*  字节流用来处理二进制文件(图片、MP3、视频文件)，读出来的是bit， 字符流用来处理文本文件(可以看做是特殊的二进制文件，使用了某种编码，人可以阅读)。处理的是char
+*  编码就是把字符转换为字节，而解码是把字节重新组合成字符
 
-### 字节转字符
-> 如果编码和解码过程使用不同的编码方式那么就出现了乱码。
-
-编码就是把字符转换为字节，而解码是把字节重新组合成字符
 
 
 ## 从数据来源或者说是操作对象角度看，IO 类可以分为
@@ -90,6 +91,39 @@ FileWriter writer = new FileWriter(new File("file.txt"));
 ```
 BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
 ```
+---
+
+# JAVA I/O 设计模式
+
+## 装饰者模式
+```
+* 装饰者(Decorator)和具体组件(ConcreteComponent)都继承自组件(Component)，
+* 具体组件的方法实现不需要依赖于其它对象，而装饰者组合了一个组件，这样它可以装饰其它装饰者或者具体组件。
+* 所谓装饰，就是把这个装饰者套在被装饰者之上，从而动态扩展被装饰者的功能。装饰者的方法有一部分是自己的，这属于它的功能，然后调用被装饰者的方法实现，从而也保留了被装饰者的功能。
+* 可以看到，具体组件应当是装饰层次的最低层，因为只有具体组件的方法实现不需要依赖于其它对象。
+````
+
+* 抽象构件（Component）角色：由InputStream扮演。这是一个抽象类，为各种子类型流处理器提供统一的接口。
+* 具体构件（ConcreteComponent）角色：由ByteArrayInputStream、FileInputStream、PipedInputStream以及StringBufferInputStream等原始流处理器扮演。他们实现了抽象构件角色所规定的接口，可以被链接流处理器所装饰。
+* 抽象装饰（Decorator）角色：由FilterInputStream扮演。它实现了InputStream所规定的接口。
+* 具体装饰（ConcreteDecorator）角色：由几个类扮演，分别是DataInputStream、BufferInputStream以及两个不常用的类LineNumberInputStream和PushBackInputStream
+
+
+> 装饰模式和适配器模式的对比
+
+* 装饰模式和适配器模式，都是通过封装其他对象达到设计目的的
+* 理想的装饰模式在对被装饰对象进行功能增强时,要求具体构件角色,装饰角色的接口与抽象构件角色的接口完全一致；而适配器模式则不然，一般而言，适配器模式并不要求对源对象的功能进行增强，只是利用源对象的功能而已，但是会改变源对象的接口，以便和目标接口相符合。
+* 装饰模式有透明和半透明两种，区别就在于接口是否完全一致。
+  * 关于装饰模式的重要的事实是，很难找到理想的装饰模式。一般而言，对一个对象进行功能增强的同时，都会导致加入新的行为，因此，装饰角色的接口比抽象构件角色的接口宽是很难避免的，这种现象存在于Java I/O库中多有的类型的链接流处理器中。一个装饰类提供的新的方法越多，它离纯装饰模式的距离就越远，离适配器模式的距离也就越近。
+
+
+### 适配器模式
+> 将某个类的接口转换成我们期望的另一个接口表示，目的是消除由于接口不匹配所造成的类的兼容性问题
+
+* 字符流与字节流间互相适配
+* ByteArrayInputStream是一个适配器类 。ByteArrayInputStream继承了InputStream的接口，而封装了一个byte数组
+* 它将一个byte数组的接口适配成了InputStream流处理器的接口
+
 
 ---
 
