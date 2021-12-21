@@ -72,15 +72,15 @@ private static int hugeCapacity(int minCapacity) {
 * `oldCapacity >> 1`是位运算的右移操作，右移一位相当于除以2，新的容量`newCapacity`为之前容量的1.5倍
 
 
-> ArrayList 扩容每次都是原容量的1.5倍吗？
+##  ArrayList 扩容每次都是原容量的1.5倍吗？
 * 当使用无参构造方法创建一个 ArrayList 实例，调用 add 方法添加第一个元素的时候，calculateCapacity 方法返回的是默认初始容量 DEFAULT_CAPACITY 大小为10；
 * 当使用指定初始容量创建ArrayList 实例，调用 addAll 方法添加多个元素的时候，原容量的1.5倍也无法存放元素的时候，会创建一个更大（不会超过 Integer.MAX_VALUE）的数组来存放元素
 
-> ArrayList 的 add 操作如何优化？
+## ArrayList 的 add 操作如何优化？
 * 扩容需要移动数据，非常影响性能。那么优化的重点就是尽量避免 ArrayList 内部进行内部扩容。对于add 操作，如果添加的元素个数已知，最好使用指定初始容量的构造方法创建 ArrayList 实例或者在添加元素之前执行`ensureCapacity`方法确保有足够的容量来存放add操作的元素
 
 
-> ArrayList 的构造方法
+##  ArrayList 的构造方法
 1. 无参构造方法 ： Java8 中使用了延迟初始化，使用无参构造方法，并不会马上创建长度为 10 的数组，而是在调用 add 方法添加第一个元素的时候才对 elementData 数组进行初始化
 2. 指定初始容量的构造方法: 
   *  传入初始容量 initialCapacity，如果初始容量大于 0，那么直接创建一个指定大小的 Object 数组；
@@ -88,12 +88,12 @@ private static int hugeCapacity(int minCapacity) {
   *  如果初始容量小于0，抛出 IllegalArgumentException 异常
 
 
-> ArrayList 源码中为何定义两个 Object 数组呢？EMPTY_ELEMENTDATA 和 DEFAULTCAPACITY_EMPTY_ELEMENTDATA 各有什么用处
+## ArrayList 源码中为何定义两个 Object 数组呢？EMPTY_ELEMENTDATA 和 DEFAULTCAPACITY_EMPTY_ELEMENTDATA 各有什么用处
 这两个常量都是空Object数组的引用，都表示ArrayList实例的空状态，即elementData数组中没有元素。
 * `EMPTY_ELEMENTDATA`使用指定初始容量的构造方法`ArrayList(int initialCapacity)`和指定初始集合的构造方法`ArrayList(Collection<? extends E> c)`时使用。
 * `DEFAULTCAPACITY_EMPTY_ELEMENTDATA` 是使用无参构造方法时使用的。
 
-> ArrayList 中的size 和 capacity 怎么理解？
+##  ArrayList 中的size 和 capacity 怎么理解？
 
 * size 用于记录 ArrayList 实例中 elementData 数组中元素的个数，
 * capacity 是elementData 数组的长度（包括已使用的数组空间和未使用的数组空间）
@@ -120,8 +120,29 @@ System中提供了一个native静态方法arraycopy()，可以使用这个方法
 * LinkedList是离散空间所以不需要主动扩容，而ArrayList是连续空间，内存空间不足时，会主动扩容
 * .由于他的底层是用双向链表实现的，没有初始化大小，所以没有油扩容机制，就是一直在前面或者是后面新增就好
 
+## ArrayList中elementData为什么被transient修饰？
 
-## HASHMAP
+该关键字声明数组默认不会被序列化
+
+ArrayList在序列化的时候会调用writeObject，直接将size和element写入ObjectOutputStream；
+反序列化时调用readObject，从ObjectInputStream获取size和element，再恢复到elementData。
+
+原因在于elementData是一个缓存数组，它通常会预留一些容量，等容量不足时再扩充容量，那么有些空间可能就没有实际存储元素，采用序列化时，就可以保证只序列化实际存储的那些元素，而不是整个数组，从而节省空间和时间。
+
+
+```
+序列化时需要使用 ObjectOutputStream 的 writeObject() 将对象转换为字节流并输出。而 writeObject() 方法在传入的对象存在 writeObject() 的时候会去反射调用该对象的 writeObject() 来实现序列化
+
+ObjectInputStream会通过反射的形式，调用private的readObject方法。
+```
+
+## add和get时间复杂度
+
+* 如果我们不指定位置直接添加元素时(add(E element))，元素会默认会添加在最后，不会触发底层数组的复制，不考虑底层数组自动扩容的话，时间复杂度为O(1) ，在指定位置添加元素(add(int index, E element))，需要复制底层数组，根据最坏打算，时间复杂度是O(n)
+* 在ArrayList中，底层数组存/取元素效率非常的高(get/set)，时间复杂度是O(1)，而查找，插入和删除元素效率似乎不太高，时间复杂度为O(n)。
+
+----
+# HASHMAP
 
 ### 讲一下hashmap原理吧,HashMap的原理，特点，怎么使用？
 
@@ -316,34 +337,6 @@ modCount remove和clean方法里操作元素前都会将变量modCount进行加1
 * 扩容倍数相同： segment的扩容也是将HashEntry数组容量扩大两倍。
 * 扩容的范围不同： 为了高效， ConcurrentHashMap 不会对整个容器进行扩容，而只对某个 segment 进行扩容。
 ----
-# Set
-## HashSet
-
-HashSet底层完全就是在HashMap的基础上包了一层，只不过存储的时候value是默认存储了一个Object的静态常量，取的时候也是只返回key，所以看起来就像List一样。
-
-```
-private static final Object PRESENT = new Object();
-public HashSet() {
-        map = new HashMap<>();
-    }
-
-public Iterator<E> iterator() {
-    return map.keySet().iterator();
-}
-
-public boolean add(E e) {
-        return map.put(e, PRESENT)==null;
-    }
-      
-```
-## TreeSet
-TreeSet实现了SortedSet接口，它是一个有序的集合类
-* TreeSet的底层是通过TreeMap实现的。
-* TreeSet并不是根据插入的顺序来排序，而是根据实际的值的大小来排序。
-* TreeSet也支持两种排序方式
-    * 自然排序
-    * 自定义排序
-----
 ##  ConcurrentHashMap在JDK1.8中的
 > 直接用Node数组+链表+红黑树的数据结构来实现，并发控制使用`Synchronized`和`CAS`来操作
 
@@ -454,7 +447,38 @@ Map的size可能超过 MAX_VALUE所以还有一个方法`mappingCount()`JDK的�
 
 
 
----
 ## 那你什么场景用concurrenthashmap 什么场景用hashmap
 * ConcurrentHashMap推荐应用场景 多线程对HashMap数据添加删除操作时，可以采用ConcurrentHashMap。
 * 多个线程的共享资源，虽然在操作中有可能增加和删除数据，但是主要目的是共享
+
+----
+
+----
+# Set
+## HashSet
+
+HashSet底层完全就是在HashMap的基础上包了一层，只不过存储的时候value是默认存储了一个Object的静态常量，取的时候也是只返回key，所以看起来就像List一样。
+
+```
+private static final Object PRESENT = new Object();
+public HashSet() {
+        map = new HashMap<>();
+    }
+
+public Iterator<E> iterator() {
+    return map.keySet().iterator();
+}
+
+public boolean add(E e) {
+        return map.put(e, PRESENT)==null;
+    }
+      
+```
+## TreeSet
+TreeSet实现了SortedSet接口，它是一个有序的集合类
+* TreeSet的底层是通过TreeMap实现的。
+* TreeSet并不是根据插入的顺序来排序，而是根据实际的值的大小来排序。
+* TreeSet也支持两种排序方式
+    * 自然排序
+    * 自定义排序
+----
