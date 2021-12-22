@@ -1,5 +1,40 @@
 
+> 说一说序列化怎么做以及为什么要序列化
 
+其实序列化最终的目的是为了对象可以跨平台存储，和进行网络传输。而我们进行跨平台存储和网络传输的方式就是IO，我们的IO支持的数据格式就是字节数组。
+
+因为我们单方面的只把对象转成字节数组还不行，因为没有规则的字节数组我们是没办法把对象的本来面目还原回来的
+
+我们必须在把对象转成字节数组的时候就制定一种规则（序列化），那么我们从IO流里面读出数据的时候再以这种规则把对象还原回来（反序列化）。
+
+只需要实现Serializable 接口即可
+
+
+> 线程交替打印奇数偶数
+
+> TreeMap怎么按照自己想要的顺序排序
+
+> ConcurrentHashMap怎么取的size值
+
+JDK1.7 和 JDK1.8 对 size 的计算是不一样的。 1.7 中是先不加锁计算三次，如果三次结果不一样在加锁。
+JDK1.8 size 是通过对 baseCount 和 counterCell 进行 CAS 计算，最终通过 baseCount 和 遍历 CounterCell 数组得出 size。
+
+JDK1.8中使用一个volatile类型的变量baseCount记录元素的个数，当插入新数据put()或则删除数据remove()时，会通过addCount()方法更新baseCount:
+
+初始化时counterCells为空，在并发量很高时，如果存在两个线程同时执行CAS修改baseCount值，则失败的线程会继续执行方法体中的逻辑，执行fullAddCount(x, uncontended)方法，这个方法其实就是初始化counterCells，并将x的值插入到counterCell类中，而x值一般也就是1
+
+
+所以counterCells存储的都是value为1的CounterCell对象，而这些对象是因为在CAS更新baseCounter值时，由于高并发而导致失败，最终将值保存到CounterCell中，放到counterCells里。这也就是为什么sumCount()中需要遍历counterCells数组，sum累加CounterCell.value值了。
+
+
+> string为什么要用final修饰？
+
+* 当String支持非可变性的时候，它们的值很好确定，不管调用哪个方法，都互不影响。HashSet用StringBuilder做元素的场景
+* String 另外一个字符串常量池的属性。像下面这样字符串 one 和 two 都用字面量 "something" 赋值。它们其实都指向同一个内存地址。
+*  因为字符串是不可变的，所以是多线程安全的，同一个字符串实例可以被多个线程共享。这样便不用因为线程安全问题而使用同步。字符串自己便是线程安全的
+*  因为字符串是不可变的，所以在它创建的时候HashCode就被缓存了，不需要重新计算。这就使得字符串很适合作为Map中的键
+
+> final和static的作用。
 
 > java中==和equals和hashCode的区别，重写euqals需要重写hash吗
 
