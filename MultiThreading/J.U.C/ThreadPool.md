@@ -219,6 +219,7 @@ private final AtomicInteger ctl = new AtomicInteger(ctlOf(RUNNING, 0));
 * 高3位保存runState，低29位保存workerCount
 
 **线程池的状态**
+一个AtomicInteger的变量表示现场状态，高三位表示线程池状态，剩下的29位表示线程个数
 * RUNNING：-1 << COUNT_BITS，即高 3 位为 111，该状态的线程池会接收新任务，并处理阻塞队列中的任务；
 * SHUTDOWN： 0 << COUNT_BITS，即高 3 位为 000，该状态的线程池不会接收新任务，但会处理阻塞队列中的任务；
 * STOP ： 1 << COUNT_BITS，即高 3 位为 001，该状态的线程不会接收新任务，也不会处理阻塞队列中的任务，而且会中断正在运行的任务；
