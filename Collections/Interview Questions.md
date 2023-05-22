@@ -191,9 +191,11 @@ get
 
 Java中的HashMap采用的hash冲突解决方案就是单独链表法，也就是在hash表节点使用链表存储hash值相同的值
 
+
 ### hashmap源码：扩容具体实现；追问先扩容再插入元素还是先插入元素再扩容（答反了，应该是先插入元素，再判断是否需要进行扩容操作再进行扩容）如果插入式时候超过阈值，新的元素不还是照常插入linkedlist上吗
 
-> HashMap扩容阈值
+* 在JDK1.7的时候是先扩容后插入的，这样就会导致无论这一次插入是不是发生hash冲突都需要进行扩容，如果这次插入的并没有发生Hash冲突的话，那么就会造成一次无效扩容，
+* 但是在1.8的时候是先插入再扩容的，优点其实是因为为了减少这一次无效的扩容，原因就是如果这次插入没有发生Hash冲突的话，那么其实就不会造成扩容，但是在1.7的时候就会急造成扩容
 
 1.7
 * Hashmap的扩容需要满足两个条件：当前数据存储的数量（即size()）大小必须大于等于阈值；当前加入的数据是否发生了hash冲突
@@ -233,8 +235,10 @@ Java中的HashMap采用的hash冲突解决方案就是单独链表法，也就�
 如果数组进行扩容，数组长度发生变化，而存储位置 index = h&(length-1),index也可能会发生变化，需要重新计算index
 
 ### HashMap的容量必须是2的幂，那么为什么要这么设计呢
-当然是为了性能。
-* 在HashMap通过键的哈希值进行定位桶位置的时候，调用了一个`indexFor(hash, table.length)`;进行了一个与操作得出了对应的桶的位置
+
+在HashMap通过键的哈希值进行定位桶位置的时候，调用了一个`indexFor(hash, table.length)`;进行了一个与操作得出了对应的桶的位置
+* 当然是为了性能。摸运算更快速
+* length 为偶数时，length-1 为奇数，奇数的二进制最后一位是 1，这样便保证了 hash &(length-1) 的最后一位可能为 0，也可能为 1（这取决于 h 的值），即 & 运算后的结果可能为偶数，也可能为奇数，这样便可以保证散列的均匀性
 
 ### 你的hashmap里可以放long类型
 
@@ -470,15 +474,12 @@ Map的size可能超过 MAX_VALUE所以还有一个方法`mappingCount()`JDK的�
 * 所以counterCells存储的都是value为1的CounterCell对象，而这些对象是因为在CAS更新baseCounter值时，由于高并发而导致失败，最终将值保存到CounterCell中，放到counterCells里。这也就是为什么sumCount()中需要遍历counterCells数组，sum累加CounterCell.value值了
 
 
-
-
 ## 那你什么场景用concurrenthashmap 什么场景用hashmap
 * ConcurrentHashMap推荐应用场景 多线程对HashMap数据添加删除操作时，可以采用ConcurrentHashMap。
 * 多个线程的共享资源，虽然在操作中有可能增加和删除数据，但是主要目的是共享
 
 ----
 
-----
 # Set
 ## HashSet
 
